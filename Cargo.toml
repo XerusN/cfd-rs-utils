@@ -1,6 +1,6 @@
 [package]
 name = "cfd-rs-utils"
-author = ["Xavier N."]
+authors = ["Xavier N."]
 version = "0.1.0"
 edition = "2021"
 description = "Utility crate for cfd-rs, includes mostly type system"
