@@ -22,7 +22,7 @@ pub struct Vector2D {
 /// ```
 impl Add for &Vector2D {
     type Output = Vector2D;
-    
+
     #[inline(always)]
     fn add(self, other: Self) -> Vector2D {
         Vector2D {
@@ -46,7 +46,7 @@ impl Add for &Vector2D {
 /// ```
 impl Sub for &Vector2D {
     type Output = Vector2D;
-    
+
     #[inline(always)]
     fn sub(self, other: Self) -> Vector2D {
         Vector2D {
@@ -70,7 +70,7 @@ impl Sub for &Vector2D {
 /// ```
 impl Mul for &Vector2D {
     type Output = f64;
-    
+
     #[inline(always)]
     fn mul(self, other: Self) -> f64 {
         self.x * other.x + self.y * other.y
@@ -90,7 +90,7 @@ impl Mul for &Vector2D {
 /// ```
 impl Mul<f64> for &Vector2D {
     type Output = Vector2D;
-    
+
     #[inline(always)]
     fn mul(self, other: f64) -> Vector2D {
         Vector2D {
@@ -113,7 +113,7 @@ impl Mul<f64> for &Vector2D {
 /// ```
 impl Div<f64> for &Vector2D {
     type Output = Vector2D;
-    
+
     #[inline(always)]
     fn div(self, other: f64) -> Vector2D {
         Vector2D {
@@ -124,7 +124,6 @@ impl Div<f64> for &Vector2D {
 }
 
 impl Vector2D {
-    
     /// Creates a new Vector2D
     ///
     /// # Example
@@ -138,9 +137,9 @@ impl Vector2D {
     /// ```
     #[inline(always)]
     pub fn new(x: f64, y: f64) -> Vector2D {
-        Vector2D { x: x, y: y }
+        Vector2D { x, y }
     }
-    
+
     /// Computes the Euclidean norm of the 2D vector
     ///
     /// # Example
@@ -196,4 +195,3 @@ impl Vector2D {
         }
     }
 }
-

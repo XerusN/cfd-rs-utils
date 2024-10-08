@@ -1,5 +1,5 @@
-use std::ops::{Add, Div, Mul, Sub};
 use super::Vector2D;
+use std::ops::{Add, Div, Mul, Sub};
 
 /// 2D point type using carthesian coordinates system.
 /// Using f64.
@@ -23,7 +23,7 @@ pub struct Point2D {
 /// ```
 impl Add for &Point2D {
     type Output = Point2D;
-    
+
     #[inline(always)]
     fn add(self, other: Self) -> Point2D {
         Point2D {
@@ -47,7 +47,7 @@ impl Add for &Point2D {
 /// ```
 impl Sub for &Point2D {
     type Output = Point2D;
-    
+
     #[inline(always)]
     fn sub(self, other: Self) -> Point2D {
         Point2D {
@@ -70,7 +70,7 @@ impl Sub for &Point2D {
 /// ```
 impl Mul<f64> for &Point2D {
     type Output = Point2D;
-    
+
     #[inline(always)]
     fn mul(self, other: f64) -> Point2D {
         Point2D {
@@ -93,7 +93,7 @@ impl Mul<f64> for &Point2D {
 /// ```
 impl Div<f64> for &Point2D {
     type Output = Point2D;
-    
+
     #[inline(always)]
     fn div(self, other: f64) -> Point2D {
         Point2D {
@@ -113,17 +113,14 @@ impl Point2D {
     ///
     /// let a = Point2D::new(3.0, 2.0);
     /// let b = Point2D{x: 3.0, y: 2.0,};
-    /// 
+    ///
     /// assert_eq!(a, b);
     /// ```
     #[inline(always)]
     pub fn new(x: f64, y: f64) -> Point2D {
-        Point2D {
-            x: x,
-            y: y,
-        }
+        Point2D { x, y }
     }
-    
+
     /// Creates a 2D vector between two points (similar to a substraction but returns a Vector2D).
     ///
     /// # Example
@@ -143,7 +140,7 @@ impl Point2D {
             y: other.y - self.y,
         }
     }
-    
+
     /// Convert a Point2D to a Vector2D
     ///
     /// # Example
