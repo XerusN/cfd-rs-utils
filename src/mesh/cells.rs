@@ -1,4 +1,5 @@
 use super::{Point2D, Vector2D};
+use super::neighbor::Neighbors;
 
 /// Trait used to define methods that 2D cells should implement in order to be used in a 2D cfd solver
 pub trait Cell2D {
@@ -18,3 +19,5 @@ pub trait Cell2D {
     /// Gives each node of the cell
     fn nodes(&self) -> Vec<Point2D>;
 }
+
+pub mod triangle;
