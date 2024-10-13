@@ -18,7 +18,7 @@ pub trait Cell2D {
     fn normals(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> Vec<Vector2D>;
 
     /// Gives each node of the cell
-    fn nodes(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> Vec<Point2D>;
+    fn nodes<'a>(&self, edges: &'a Vec<Edge2D>, nodes: &'a Vec<Point2D>) -> Vec<&'a Point2D>;
 }
 
 pub mod triangle;
