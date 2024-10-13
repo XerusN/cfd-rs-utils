@@ -78,6 +78,7 @@ impl Cell2D for MeshTriangle {
 
 /// Abstraction for the MeshTriangle type.
 /// Enables to access cells informations in a less verbose way.
+/// Since it's working with references can't be used when editing the mesh.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Triangle<'a> {
     pub nodes: [&'a Point2D; 3],
