@@ -7,15 +7,15 @@ pub struct Edge2D {
 }
 
 impl Edge2D {
-    pub fn nodes<'a>(&self, nodes: &'a Vec<Point2D>) -> [&'a Point2D; 2] {
+    pub fn nodes<'a>(&self, nodes: &'a [Point2D]) -> [&'a Point2D; 2] {
         [&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]]]
     }
 
-    pub fn first_node<'a>(&self, nodes: &'a Vec<Point2D>) -> &'a Point2D {
+    pub fn first_node<'a>(&self, nodes: &'a [Point2D]) -> &'a Point2D {
         &nodes[self.nodes_idx[0]]
     }
 
-    pub fn to_vector(&self, nodes: &Vec<Point2D>) -> Vector2D {
+    pub fn to_vector(&self, nodes: &[Point2D]) -> Vector2D {
         nodes[self.nodes_idx[0]].vector_to(&nodes[self.nodes_idx[0]])
     }
 }

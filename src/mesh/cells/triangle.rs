@@ -11,15 +11,15 @@ pub struct MeshTriangle {
 }
 
 impl MeshTriangle {
-    pub fn nodes<'a>(&self, edges: &'a Vec<Edge2D>, nodes: &'a Vec<Point2D>) -> [&'a Point2D; 3] {
+    pub fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> [&'a Point2D; 3] {
         [
-            &edges[self.edges_idx[0]].first_node(nodes),
-            &edges[self.edges_idx[1]].first_node(nodes),
-            &edges[self.edges_idx[2]].first_node(nodes),
+            edges[self.edges_idx[0]].first_node(nodes),
+            edges[self.edges_idx[1]].first_node(nodes),
+            edges[self.edges_idx[2]].first_node(nodes),
         ]
     }
 
-    pub fn edges<'a>(&self, edges: &'a Vec<Edge2D>) -> [&'a Edge2D; 3] {
+    pub fn edges<'a>(&self, edges: &'a [Edge2D]) -> [&'a Edge2D; 3] {
         [
             &edges[self.edges_idx[0]],
             &edges[self.edges_idx[1]],
@@ -31,7 +31,7 @@ impl MeshTriangle {
 impl Cell2D for MeshTriangle {
     /// Compute the surface of the 2D cell
     #[inline(always)]
-    fn area(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> f64 {
+    fn area(&self, edges: &[Edge2D], nodes: &[Point2D]) -> f64 {
         let nodes = self.nodes(edges, nodes);
         (0.5 * (-nodes[1].y * nodes[2].x
             + nodes[0].y * (-nodes[1].x + nodes[2].x)
@@ -43,7 +43,7 @@ impl Cell2D for MeshTriangle {
     /// Compute the signed area of the 2D cell
     /// Often useful when building a mesh
     #[inline(always)]
-    fn signed_area(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> f64 {
+    fn signed_area(&self, edges: &[Edge2D], nodes: &[Point2D]) -> f64 {
         let nodes = self.nodes(edges, nodes);
         0.5 * (-nodes[1].y * nodes[2].x
             + nodes[0].y * (-nodes[1].x + nodes[2].x)
@@ -53,14 +53,14 @@ impl Cell2D for MeshTriangle {
 
     /// Computes the center of the cell
     #[inline(always)]
-    fn center(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> Point2D {
+    fn center(&self, edges: &[Edge2D], nodes: &[Point2D]) -> Point2D {
         let nodes = self.nodes(edges, nodes);
         &(&(nodes[0] + nodes[1]) + nodes[2]) / 3.0
     }
 
     /// Computes the normals to each edge
     #[inline(always)]
-    fn normals(&self, edges: &Vec<Edge2D>, nodes: &Vec<Point2D>) -> Vec<Vector2D> {
+    fn normals(&self, edges: &[Edge2D], nodes: &[Point2D]) -> Vec<Vector2D> {
         let edges = self.edges(edges);
         vec![
             edges[0].to_vector(nodes),
@@ -71,9 +71,16 @@ impl Cell2D for MeshTriangle {
 
     /// Gives each node of the cell
     #[inline(always)]
-    fn nodes<'a>(&self, edges: &'a Vec<Edge2D>, nodes: &'a Vec<Point2D>) -> Vec<&'a Point2D> {
+    fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
         self.nodes(edges, nodes).to_vec()
     }
 }
 
-
+/// Abstraction for the MeshTriangle type.
+/// Enables to access cells informations in a less verbose way.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Triangle<'a> {
+    pub nodes: [&'a Point2D; 3],
+    pub edges: [&'a Edge2D; 3],
+    pub mesh_triangle: &'a MeshTriangle,
+}
