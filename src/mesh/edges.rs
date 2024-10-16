@@ -62,7 +62,7 @@ impl Edge2D {
     pub fn nodes<'a>(&self, nodes: &'a [Point2D]) -> [&'a Point2D; 2] {
         [&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]]]
     }
-    
+
     /// Gives the Point2D struct to which the first index is indexing.
     ///
     /// # Example
@@ -73,7 +73,7 @@ impl Edge2D {
     /// let a = mesh::Edge2D::new(0, 1);
     /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
     ///
-    /// assert_eq!(a.nodes(&nodes), &Point2D::new(0.0, 1.0));
+    /// assert_eq!(a.first_node(&nodes), &Point2D::new(0.0, 1.0));
     /// ```
     ///
     /// # Panics
@@ -92,10 +92,34 @@ impl Edge2D {
     pub fn first_node<'a>(&self, nodes: &'a [Point2D]) -> &'a Point2D {
         &nodes[self.nodes_idx[0]]
     }
-    
-    /// Creates a new Vector2D instance from an edge.
+
+    /// Creates an owned Vector2D instance from an edge.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    ///
+    /// let a = mesh::Edge2D::new(0, 1);
+    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0)];
+    ///
+    /// assert_eq!(a.to_vector(&nodes), Vector2D::new(1.0, 2.0));
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// The program panics if one of the index in Edge2D is out of bound in nodes.
+    ///
+    /// ```should_panic
+    /// use cfd_rs_utils::*;
+    ///
+    /// let a = mesh::Edge2D::new(2, 1);
+    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    ///
+    /// a.to_vector(&nodes);
+    /// ```
     #[inline(always)]
     pub fn to_vector(&self, nodes: &[Point2D]) -> Vector2D {
-        nodes[self.nodes_idx[0]].vector_to(&nodes[self.nodes_idx[0]])
+        nodes[self.nodes_idx[0]].vector_to(&nodes[self.nodes_idx[1]])
     }
 }

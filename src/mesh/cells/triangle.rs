@@ -5,12 +5,12 @@ use super::{Edge2D, Point2D, Vector2D};
 /// Nodes gives the indices of the nodes in the corresponding array.
 /// Neighbors tells if the triangle has no neighnour, is a boundary cell, or gives the indices of the neighboring cells.
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct MeshTriangle {
+pub struct Triangle {
     pub edges_idx: [usize; 3],
     pub neighbors_idx: [Neighbors; 3],
 }
 
-impl MeshTriangle {
+impl Triangle {
     pub fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> [&'a Point2D; 3] {
         [
             edges[self.edges_idx[0]].first_node(nodes),
@@ -28,7 +28,7 @@ impl MeshTriangle {
     }
 }
 
-impl Cell2D for MeshTriangle {
+impl Cell2D for Triangle {
     /// Compute the surface of the 2D cell
     #[inline(always)]
     fn area(&self, edges: &[Edge2D], nodes: &[Point2D]) -> f64 {
@@ -74,14 +74,4 @@ impl Cell2D for MeshTriangle {
     fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
         self.nodes(edges, nodes).to_vec()
     }
-}
-
-/// Abstraction for the MeshTriangle type.
-/// Enables to access cells informations in a less verbose way.
-/// Since it's working with references can't be used when editing the mesh.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Triangle<'a> {
-    pub nodes: [&'a Point2D; 3],
-    pub edges: [&'a Edge2D; 3],
-    pub mesh_triangle: &'a MeshTriangle,
 }
