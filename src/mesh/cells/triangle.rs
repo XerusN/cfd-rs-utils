@@ -23,8 +23,9 @@ impl Triangle {
     /// ```rust
     /// use cfd_rs_utils::*;
     /// 
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
-    /// let b = Triangle { edges_idx: [0, 1, 2], neighbors: [Neighbors::None, Neighbors::None, Neighbors::None], };
+    /// let b = Triangle { edges_idx: [0, 1, 2], neighbors: [Neighbors::None, Neighbors::None, Neighbors::None], nodes_idx: [0, 1, 2]};
     ///
     /// assert_eq!(a, b);
     /// ```

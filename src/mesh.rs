@@ -25,7 +25,7 @@ impl<T: Cell2D> Mesh2D<T> {
     ///
     /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(1.0, 3.0), Point2::<f64>::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
-    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None])];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
     ///
     /// let mesh = Mesh2D::<Triangle>::new(nodes, edges, cells);
     ///
