@@ -3,7 +3,7 @@ use super::{Edge2D, Point2D, Vector2D};
 
 /// Represents a triangle.
 /// edges and nodes gives the indices of the data in the corresponding array.
-/// The nodes data may seem like a duplication but it appeared to me that using 
+/// The nodes data may seem like a duplication but it appeared to me that using
 /// `Neighbors` tells if the triangle has no neighnour, is a boundary cell, or gives the indices of the neighboring cells.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Triangle {
@@ -47,9 +47,9 @@ impl Triangle {
     /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)
-    /// 
+    ///
     /// assert_eq!(triangle.nodes_idx[0] == 0);
-    /// 
+    ///
     /// triangle.edges_idx = [1, 2, 0];
     /// triangle.update_nodes_idx_from_edges(edges);
     ///
@@ -132,6 +132,10 @@ impl Cell2D for Triangle {
     /// Gives each node of the cell
     #[inline(always)]
     fn nodes<'a>(&self, nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
-        vec![&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]], &nodes[self.nodes_idx[2]]]
+        vec![
+            &nodes[self.nodes_idx[0]],
+            &nodes[self.nodes_idx[1]],
+            &nodes[self.nodes_idx[2]],
+        ]
     }
 }
