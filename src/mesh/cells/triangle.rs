@@ -1,7 +1,9 @@
-use super::{Cell2D, Neighbors};
+use core::f64;
+
 use super::Edge2D;
-use nalgebra::{Vector2, Point2};
+use super::{Cell2D, Neighbors};
 use indices::indices;
+use nalgebra::{Point2, Rotation2, Unit, Vector2};
 
 /// Represents a triangle.
 /// edges and nodes gives the indices of the data in the corresponding array.
@@ -22,7 +24,7 @@ impl Triangle {
     ///
     /// ```rust
     /// use cfd_rs_utils::*;
-    /// 
+    ///
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     /// let b = Triangle { edges_idx: [0, 1, 2], neighbors: [Neighbors::None, Neighbors::None, Neighbors::None], nodes_idx: [0, 1, 2]};
@@ -104,6 +106,19 @@ impl Triangle {
 
 impl Cell2D for Triangle {
     /// Compute the surface of the 2D cell
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    ///
+    /// let nodes = vec![Point2::<f64>::new(0.0, 0.0), Point2::<f64>::new(1.0, 0.0), Point2::<f64>::new(0.0, 1.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    ///
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    ///
+    /// assert_eq!(a.area(&nodes), 0.5);
+    /// ```
     #[inline(always)]
     fn area(&self, nodes: &[Point2<f64>]) -> f64 {
         let nodes = self.nodes(nodes);
@@ -115,6 +130,18 @@ impl Cell2D for Triangle {
     }
 
     /// Computes the center of the cell
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    /// let nodes = vec![Point2::<f64>::new(0.0, 0.0), Point2::<f64>::new(1.0, 0.0), Point2::<f64>::new(0.0, 1.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    ///
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    ///
+    /// assert_eq!(a.center(&nodes), Point2::<f64>::new(1./3., 1./3.));
+    /// ```
     #[inline(always)]
     fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64> {
         let nodes = self.nodes(nodes);
@@ -122,14 +149,34 @@ impl Cell2D for Triangle {
     }
 
     /// Computes the normals to each edge
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    /// let nodes = vec![Point2::<f64>::new(0.0, 0.0), Point2::<f64>::new(1.0, 0.0), Point2::<f64>::new(0.0, 1.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    ///
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    ///
+    /// assert_eq!(a.normals(&edges, &nodes)[0].y, -1.0);
+    /// ```
     #[inline(always)]
-    fn normals(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Vec<Vector2<f64>> {
-        let edges = self.edges(edges);
-        vec![
-            edges[0].to_vector(nodes),
-            edges[1].to_vector(nodes),
-            edges[2].to_vector(nodes),
-        ]
+    fn normals(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Vec<Unit<Vector2<f64>>> {
+        let rot = Rotation2::new(f64::consts::FRAC_PI_2);
+        let cell_center = self.center(nodes);
+        self.edges(edges)
+            .iter()
+            .map(|edge| {
+                let centers = edge.center(nodes);
+                let normal = rot * edge.to_vector(nodes);
+                if normal.dot(&(centers - cell_center)) > 0. {
+                    Unit::<Vector2<f64>>::new_normalize(normal)
+                } else {
+                    Unit::<Vector2<f64>>::new_normalize(-normal)
+                }
+            })
+            .collect()
     }
 
     /// Gives a reference to each node of the cell
@@ -166,6 +213,7 @@ impl Cell2D for Triangle {
     }
 
     /// Gives a mutable reference to each edge of the cell.
+    /// Panics if some indices are the same
     #[inline(always)]
     fn edges_mut<'a>(&self, edges: &'a mut [Edge2D]) -> Vec<&'a mut Edge2D> {
         let (first_edge, second_edge, third_edge) = indices!(

@@ -1,4 +1,4 @@
-use nalgebra::{Point2, Vector2};
+use nalgebra::{center, Point2, Vector2};
 
 /// Struct used to describe edges in 2D.
 /// It is intended to be used as part of a mesh so it keeps the indices for the 2 nodes and eventually the indices of the parent cells.
@@ -34,7 +34,7 @@ impl Edge2D {
         }
     }
 
-    /// Gives the Point2Ds struct to which nodes_idx are indexing.
+    /// Gives the `Point2`s struct to which nodes_idx are indexing.
     ///
     /// # Example
     ///
@@ -49,7 +49,7 @@ impl Edge2D {
     ///
     /// # Panics
     ///
-    /// The program panics if the indices in Edge2D are out of bound in nodes.
+    /// The program panics if the indices in `Edge2D` are out of bound in nodes.
     ///
     /// ```should_panic
     /// use cfd_rs_utils::*;
@@ -64,7 +64,7 @@ impl Edge2D {
         [&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]]]
     }
 
-    /// Gives the Point2D struct to which the first index is indexing.
+    /// Gives the `Point2` struct to which the first index is indexing.
     ///
     /// # Example
     ///
@@ -94,7 +94,7 @@ impl Edge2D {
         &nodes[self.nodes_idx[0]]
     }
 
-    /// Creates an owned Vector2D instance from an edge.
+    /// Creates an owned `Vector2` instance from an edge.
     ///
     /// # Example
     ///
@@ -109,7 +109,7 @@ impl Edge2D {
     ///
     /// # Panics
     ///
-    /// The program panics if one of the index in Edge2D is out of bound in nodes.
+    /// The program panics if one of the indices in Edge2D is out of bound in nodes.
     ///
     /// ```should_panic
     /// use cfd_rs_utils::*;
@@ -122,5 +122,35 @@ impl Edge2D {
     #[inline(always)]
     pub fn to_vector(&self, nodes: &[Point2<f64>]) -> Vector2<f64> {
         nodes[self.nodes_idx[1]] - nodes[self.nodes_idx[0]]
+    }
+
+    /// Computes the center of the edge.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    ///
+    /// let a = mesh::Edge2D::new(0, 1);
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.0, 3.0)];
+    ///
+    /// assert_eq!(a.center(&nodes), Point2::<f64>::new(0.0, 2.0));
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// The program panics if one of the indices in Edge2D is out of bound in nodes.
+    ///
+    /// ```should_panic
+    /// use cfd_rs_utils::*;
+    ///
+    /// let a = mesh::Edge2D::new(2, 1);
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
+    ///
+    /// a.center(&nodes);
+    /// ```
+    #[inline(always)]
+    pub fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64> {
+        center(&nodes[self.nodes_idx[1]], &nodes[self.nodes_idx[0]])
     }
 }

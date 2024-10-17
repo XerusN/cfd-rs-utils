@@ -1,6 +1,6 @@
 use super::edges::Edge2D;
 use super::neighbor::Neighbors;
-use nalgebra::{Point2, Vector2};
+use nalgebra::{Point2, Unit, Vector2};
 pub use triangle::Triangle;
 
 /// Trait used to define methods that 2D cells should implement in order to be used in a 2D cfd solver.
@@ -12,7 +12,7 @@ pub trait Cell2D {
     fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64>;
 
     /// Computes the normals to each edge.
-    fn normals(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Vec<Vector2<f64>>;
+    fn normals(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Vec<Unit<Vector2<f64>>>;
 
     /// Gives a reference to each node of the cell.
     fn nodes<'a>(&self, nodes: &'a [Point2<f64>]) -> Vec<&'a Point2<f64>>;

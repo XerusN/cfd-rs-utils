@@ -1,7 +1,7 @@
 pub use cells::*;
 pub use edges::*;
+pub use nalgebra::{Point2, Vector2, Unit};
 pub use neighbor::*;
-pub use nalgebra::{Point2, Vector2};
 pub mod cells;
 pub mod edges;
 pub mod neighbor;
@@ -43,11 +43,11 @@ impl<T: Cell2D> Mesh2D<T> {
             cells,
         }
     }
-    
+
     /// Gives the nodes from the cell indicated by the index.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use cfd_rs_utils::*;
     ///
@@ -59,11 +59,11 @@ impl<T: Cell2D> Mesh2D<T> {
     ///
     /// assert_eq!(mesh.cell_nodes(0)[0], &Point2::<f64>::new(0.0, 1.0));
     /// ```
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// If the `cell_index` is out of bound in `self.cells` it will panic.
-    /// 
+    ///
     /// ```rust, should_panic
     /// use cfd_rs_utils::*;
     ///
@@ -79,7 +79,7 @@ impl<T: Cell2D> Mesh2D<T> {
     pub fn cell_nodes(&self, cell_index: usize) -> Vec<&Point2<f64>> {
         self.cells[cell_index].nodes(&self.nodes)
     }
-    
+
     #[inline(always)]
     pub fn cell_edges(&self, cell_index: usize) -> Vec<&Edge2D> {
         self.cells[cell_index].edges(&self.edges)
