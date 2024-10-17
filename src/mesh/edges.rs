@@ -1,4 +1,4 @@
-use super::{Point2D, Vector2D};
+use nalgebra::{Point2, Vector2};
 
 /// Struct used to describe edges in 2D.
 /// It is intended to be used as part of a mesh so it keeps the indices for the 2 nodes and eventually the indices of the parent cells.
@@ -42,9 +42,9 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(0, 1);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
     ///
-    /// assert_eq!(a.nodes(&nodes), [&Point2D::new(0.0, 1.0), &Point2D::new(0.05, 3.0)]);
+    /// assert_eq!(a.nodes(&nodes), [&Point2::<f64>::new(0.0, 1.0), &Point2::<f64>::new(0.05, 3.0)]);
     /// ```
     ///
     /// # Panics
@@ -55,12 +55,12 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(0, 2);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
     ///
     /// a.nodes(&nodes);
     /// ```
     #[inline(always)]
-    pub fn nodes<'a>(&self, nodes: &'a [Point2D]) -> [&'a Point2D; 2] {
+    pub fn nodes<'a>(&self, nodes: &'a [Point2<f64>]) -> [&'a Point2<f64>; 2] {
         [&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]]]
     }
 
@@ -72,9 +72,9 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(0, 1);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
     ///
-    /// assert_eq!(a.first_node(&nodes), &Point2D::new(0.0, 1.0));
+    /// assert_eq!(a.first_node(&nodes), &Point2::<f64>::new(0.0, 1.0));
     /// ```
     ///
     /// # Panics
@@ -85,12 +85,12 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(2, 1);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
     ///
     /// a.first_node(&nodes);
     /// ```
     #[inline(always)]
-    pub fn first_node<'a>(&self, nodes: &'a [Point2D]) -> &'a Point2D {
+    pub fn first_node<'a>(&self, nodes: &'a [Point2<f64>]) -> &'a Point2<f64> {
         &nodes[self.nodes_idx[0]]
     }
 
@@ -102,9 +102,9 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(0, 1);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(1.0, 3.0)];
     ///
-    /// assert_eq!(a.to_vector(&nodes), Vector2D::new(1.0, 2.0));
+    /// assert_eq!(a.to_vector(&nodes), Vector2::<f64>::new(1.0, 2.0));
     /// ```
     ///
     /// # Panics
@@ -115,12 +115,12 @@ impl Edge2D {
     /// use cfd_rs_utils::*;
     ///
     /// let a = mesh::Edge2D::new(2, 1);
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(0.05, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(0.05, 3.0)];
     ///
     /// a.to_vector(&nodes);
     /// ```
     #[inline(always)]
-    pub fn to_vector(&self, nodes: &[Point2D]) -> Vector2D {
-        nodes[self.nodes_idx[0]].vector_to(&nodes[self.nodes_idx[1]])
+    pub fn to_vector(&self, nodes: &[Point2<f64>]) -> Vector2<f64> {
+        nodes[self.nodes_idx[1]] - nodes[self.nodes_idx[0]]
     }
 }

@@ -1,5 +1,6 @@
 use super::{Cell2D, Neighbors};
-use super::{Edge2D, Point2D, Vector2D};
+use super::Edge2D;
+use nalgebra::{Vector2, Point2};
 use indices::indices;
 
 /// Represents a triangle.
@@ -45,7 +46,7 @@ impl Triangle {
     /// ```rust
     /// use cfd_rs_utils::*;
     ///
-    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(1.0, 3.0), Point2::<f64>::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     ///
@@ -103,7 +104,7 @@ impl Triangle {
 impl Cell2D for Triangle {
     /// Compute the surface of the 2D cell
     #[inline(always)]
-    fn area(&self, nodes: &[Point2D]) -> f64 {
+    fn area(&self, nodes: &[Point2<f64>]) -> f64 {
         let nodes = self.nodes(nodes);
         (0.5 * (-nodes[1].y * nodes[2].x
             + nodes[0].y * (-nodes[1].x + nodes[2].x)
@@ -114,14 +115,14 @@ impl Cell2D for Triangle {
 
     /// Computes the center of the cell
     #[inline(always)]
-    fn center(&self, nodes: &[Point2D]) -> Point2D {
+    fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64> {
         let nodes = self.nodes(nodes);
-        &(&(nodes[0] + nodes[1]) + nodes[2]) / 3.0
+        Vector2::<f64>::into((nodes[0].coords + nodes[1].coords + nodes[2].coords) / 3.0)
     }
 
     /// Computes the normals to each edge
     #[inline(always)]
-    fn normals(&self, edges: &[Edge2D], nodes: &[Point2D]) -> Vec<Vector2D> {
+    fn normals(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Vec<Vector2<f64>> {
         let edges = self.edges(edges);
         vec![
             edges[0].to_vector(nodes),
@@ -132,7 +133,7 @@ impl Cell2D for Triangle {
 
     /// Gives a reference to each node of the cell
     #[inline(always)]
-    fn nodes<'a>(&self, nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
+    fn nodes<'a>(&self, nodes: &'a [Point2<f64>]) -> Vec<&'a Point2<f64>> {
         vec![
             &nodes[self.nodes_idx[0]],
             &nodes[self.nodes_idx[1]],
@@ -153,7 +154,7 @@ impl Cell2D for Triangle {
     /// Gives a mutable reference to each node of the cell.
     /// Panics if some indices are the same.
     #[inline(always)]
-    fn nodes_mut<'a>(&self, nodes: &'a mut [Point2D]) -> Vec<&'a mut Point2D> {
+    fn nodes_mut<'a>(&self, nodes: &'a mut [Point2<f64>]) -> Vec<&'a mut Point2<f64>> {
         let (first_node, second_node, third_node) = indices!(
             nodes,
             self.nodes_idx[0],
