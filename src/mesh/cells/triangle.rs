@@ -2,16 +2,19 @@ use super::{Cell2D, Neighbors};
 use super::{Edge2D, Point2D, Vector2D};
 
 /// Represents a triangle.
-/// Nodes gives the indices of the nodes in the corresponding array.
+/// edges and nodes gives the indices of the data in the corresponding array.
+/// The nodes data may seem like a duplication but it appeared to me that using 
 /// `Neighbors` tells if the triangle has no neighnour, is a boundary cell, or gives the indices of the neighboring cells.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Triangle {
     pub edges_idx: [usize; 3],
+    pub nodes_idx: [usize; 3],
     pub neighbors: [Neighbors; 3],
 }
 
 impl Triangle {
     /// Creates a simple new instance of `Triangle`.
+    /// `edges` refers to the array containing all edges (not only for this `Triangle`).
     ///
     /// # Example
     ///
@@ -24,14 +27,17 @@ impl Triangle {
     /// assert_eq!(a, b);
     /// ```
     #[inline(always)]
-    pub fn new(edges_idx: [usize; 3], neighbors: [Neighbors; 3]) -> Triangle {
-        Triangle {
+    pub fn new(edges_idx: [usize; 3], neighbors: [Neighbors; 3], edges: &[Edge2D]) -> Triangle {
+        let mut triangle = Triangle {
             edges_idx,
+            nodes_idx: [0; 3],
             neighbors,
-        }
+        };
+        triangle.update_nodes_idx_from_edges(edges);
+        triangle
     }
 
-    /// Gives a reference to the `Point2D` data from each node of the `Triangle`.
+    /// Updates `nodes_idx` using `edges`
     ///
     /// # Example
     ///
@@ -40,13 +46,16 @@ impl Triangle {
     ///
     /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)
+    /// 
+    /// assert_eq!(triangle.nodes_idx[0] == 0);
+    /// 
+    /// triangle.edges_idx = [1, 2, 0];
+    /// triangle.update_nodes_idx_from_edges(edges);
     ///
-    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None]);
-    /// let b = [&nodes[0], &nodes[1], &nodes[2]];
-    ///
-    /// assert_eq!(a.nodes(&edges, &nodes), b);
+    /// assert_eq!(triangle.nodes_idx[0] == 1);
     /// ```
-    pub fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> [&'a Point2D; 3] {
+    pub fn update_nodes_idx_from_edges(&mut self, edges: &[Edge2D]) {
         let first_node = edges[self.edges_idx[0]].nodes_idx[0];
         let second_node = if edges[self.edges_idx[1]].nodes_idx[0] == first_node {
             edges[self.edges_idx[1]].nodes_idx[1]
@@ -64,7 +73,7 @@ impl Triangle {
         } else {
             edges[self.edges_idx[2]].nodes_idx[0]
         };
-        [&nodes[first_node], &nodes[second_node], &nodes[third_node]]
+        self.nodes_idx = [first_node, second_node, third_node];
     }
 
     /// Gives a reference to the `Edge2D` data from each edge of the `Triangle`.
@@ -93,8 +102,8 @@ impl Triangle {
 impl Cell2D for Triangle {
     /// Compute the surface of the 2D cell
     #[inline(always)]
-    fn area(&self, edges: &[Edge2D], nodes: &[Point2D]) -> f64 {
-        let nodes = self.nodes(edges, nodes);
+    fn area(&self, nodes: &[Point2D]) -> f64 {
+        let nodes = self.nodes(nodes);
         (0.5 * (-nodes[1].y * nodes[2].x
             + nodes[0].y * (-nodes[1].x + nodes[2].x)
             + nodes[0].x * (nodes[1].y - nodes[2].y)
@@ -102,21 +111,10 @@ impl Cell2D for Triangle {
             .abs()
     }
 
-    /// Compute the signed area of the 2D cell
-    /// Often useful when building a mesh
-    #[inline(always)]
-    fn signed_area(&self, edges: &[Edge2D], nodes: &[Point2D]) -> f64 {
-        let nodes = self.nodes(edges, nodes);
-        0.5 * (-nodes[1].y * nodes[2].x
-            + nodes[0].y * (-nodes[1].x + nodes[2].x)
-            + nodes[0].x * (nodes[1].y - nodes[2].y)
-            + nodes[1].x * nodes[2].y)
-    }
-
     /// Computes the center of the cell
     #[inline(always)]
-    fn center(&self, edges: &[Edge2D], nodes: &[Point2D]) -> Point2D {
-        let nodes = self.nodes(edges, nodes);
+    fn center(&self, nodes: &[Point2D]) -> Point2D {
+        let nodes = self.nodes(nodes);
         &(&(nodes[0] + nodes[1]) + nodes[2]) / 3.0
     }
 
@@ -133,7 +131,7 @@ impl Cell2D for Triangle {
 
     /// Gives each node of the cell
     #[inline(always)]
-    fn nodes<'a>(&self, edges: &'a [Edge2D], nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
-        self.nodes(edges, nodes).to_vec()
+    fn nodes<'a>(&self, nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
+        vec![&nodes[self.nodes_idx[0]], &nodes[self.nodes_idx[1]], &nodes[self.nodes_idx[2]]]
     }
 }
