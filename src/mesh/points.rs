@@ -2,14 +2,14 @@ use super::Vector2D;
 use std::ops::{Add, Div, Mul, Sub};
 
 /// 2D point type using carthesian coordinates system.
-/// Using f64.
+/// Using `f64`.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Point2D {
     pub x: f64,
     pub y: f64,
 }
 
-/// Performs a addition between coordinates points.
+/// Performs a addition between `Point2D`s.
 ///
 /// # Example
 ///
@@ -33,7 +33,7 @@ impl Add for &Point2D {
     }
 }
 
-/// Performs a substraction between 2D coordinates points.
+/// Performs a substraction between `Point2D`s.
 ///
 /// # Example
 ///
@@ -57,7 +57,7 @@ impl Sub for &Point2D {
     }
 }
 
-/// Performs a division between 2D coordinates and a float.
+/// Performs a division between a `Point2D` and an `f64`.
 ///
 /// # Example
 ///
@@ -80,7 +80,7 @@ impl Mul<f64> for &Point2D {
     }
 }
 
-/// Performs a division between 2D coordinates and a float.
+/// Performs a division between a `Point2D` and an `f64`.
 ///
 /// # Example
 ///
@@ -104,7 +104,7 @@ impl Div<f64> for &Point2D {
 }
 
 impl Point2D {
-    /// Creates a Point2D
+    /// Creates a `Point2D`
     ///
     /// # Example
     ///
@@ -121,7 +121,7 @@ impl Point2D {
         Point2D { x, y }
     }
 
-    /// Creates a 2D vector between two points (similar to a substraction but returns a Vector2D).
+    /// Creates a `Vector2D` between two points (similar to a substraction but returns a `Vector2D`).
     ///
     /// # Example
     ///
@@ -141,7 +141,7 @@ impl Point2D {
         }
     }
 
-    /// Convert a Point2D to a Vector2D
+    /// Convert a `Point2D` to a `Vector2D`
     ///
     /// # Example
     ///

@@ -2,6 +2,7 @@ use super::{Point2D, Vector2D};
 
 /// Struct used to describe edges in 2D.
 /// It is intended to be used as part of a mesh so it keeps the indices for the 2 nodes and eventually the indices of the parent cells.
+/// Only implemented for 2D since it needs more parent cell than 2 in 3D.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Edge2D {
     pub nodes_idx: [usize; 2],
@@ -9,7 +10,7 @@ pub struct Edge2D {
 }
 
 impl Edge2D {
-    /// Creates a simple new instance of Edge2D.
+    /// Creates a simple new instance of `Edge2D`.
     /// Does not support parent cells indices, often not needed when creating an edge.
     ///
     /// # Example

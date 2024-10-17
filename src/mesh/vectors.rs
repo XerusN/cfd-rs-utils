@@ -1,14 +1,14 @@
 use std::ops::{Add, Div, Mul, Sub};
 
 /// 2D vector type using carthesian coordinates system.
-/// Using f64.
+/// Using `f64`.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Vector2D {
     pub x: f64,
     pub y: f64,
 }
 
-/// Performs a addition between 2D vectors.
+/// Performs a addition between `Vector2D`s.
 ///
 /// # Example
 ///
@@ -32,7 +32,7 @@ impl Add for &Vector2D {
     }
 }
 
-/// Performs a substraction between 2D vectors.
+/// Performs a substraction between `Vector2D`s.
 ///
 /// # Example
 ///
@@ -56,7 +56,7 @@ impl Sub for &Vector2D {
     }
 }
 
-/// Performs a dot product between 2D vectors.
+/// Performs a dot product between `Vector2D`s.
 ///
 /// # Example
 ///
@@ -77,7 +77,7 @@ impl Mul for &Vector2D {
     }
 }
 
-/// Performs a division between a 2D vector and a float.
+/// Performs a division between a `Vector2D` and a float.
 ///
 /// # Example
 ///
@@ -100,7 +100,7 @@ impl Mul<f64> for &Vector2D {
     }
 }
 
-/// Performs a division between a 2D vector and a float.
+/// Performs a division between a `Vector2D` and an `f64`.
 ///
 /// # Example
 ///
@@ -124,7 +124,7 @@ impl Div<f64> for &Vector2D {
 }
 
 impl Vector2D {
-    /// Creates a new Vector2D
+    /// Creates a new `Vector2D`
     ///
     /// # Example
     ///
@@ -140,7 +140,7 @@ impl Vector2D {
         Vector2D { x, y }
     }
 
-    /// Computes the Euclidean norm of the 2D vector
+    /// Computes the Euclidean norm of the `Vector2D`.
     ///
     /// # Example
     ///
@@ -156,7 +156,7 @@ impl Vector2D {
         (self * self).sqrt()
     }
 
-    /// Normalizes the 2D vector. The norm will then equal to 1.
+    /// Normalizes the `Vector2D`. The norm will then equal to 1.
     ///
     /// # Example
     ///
@@ -174,7 +174,7 @@ impl Vector2D {
         self / norm
     }
 
-    /// Returns an orthogonal 2D vector counter-clockwise
+    /// Returns an orthogonal `Vector2D` (counter-clockwise).
     ///
     /// # Example
     ///
