@@ -23,6 +23,7 @@ impl Triangle {
     ///
     /// assert_eq!(a, b);
     /// ```
+    #[inline(always)]
     pub fn new(edges_idx: [usize; 3], neighbors: [Neighbors; 3]) -> Triangle {
         Triangle {
             edges_idx,
@@ -52,9 +53,13 @@ impl Triangle {
         } else {
             edges[self.edges_idx[1]].nodes_idx[0]
         };
-        let third_node = if (edges[self.edges_idx[2]].nodes_idx[0] == first_node) & (edges[self.edges_idx[2]].nodes_idx[0] == second_node) {
+        let third_node = if (edges[self.edges_idx[2]].nodes_idx[0] == first_node)
+            & (edges[self.edges_idx[2]].nodes_idx[0] == second_node)
+        {
             panic!("Triangle is badly constructed, it only has two nodes")
-        } else if (edges[self.edges_idx[2]].nodes_idx[0] == first_node) | (edges[self.edges_idx[2]].nodes_idx[0] == second_node) {
+        } else if (edges[self.edges_idx[2]].nodes_idx[0] == first_node)
+            | (edges[self.edges_idx[2]].nodes_idx[0] == second_node)
+        {
             edges[self.edges_idx[2]].nodes_idx[1]
         } else {
             edges[self.edges_idx[2]].nodes_idx[0]

@@ -38,6 +38,7 @@ impl<T: Cell2D> Mesh2D<T> {
     ///
     /// assert_eq!(mesh, Mesh2D::<Triangle> {nodes, edges, cells,});
     /// ```
+    #[inline(always)]
     pub fn new(nodes: Vec<Point2D>, edges: Vec<Edge2D>, cells: Vec<T>) -> Mesh2D<T> {
         Mesh2D {
             nodes,
