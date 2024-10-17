@@ -1,5 +1,6 @@
 use super::{Cell2D, Neighbors};
 use super::{Edge2D, Point2D, Vector2D};
+use indices::indices;
 
 /// Represents a triangle.
 /// edges and nodes gives the indices of the data in the corresponding array.
@@ -20,8 +21,8 @@ impl Triangle {
     ///
     /// ```rust
     /// use cfd_rs_utils::*;
-    ///
-    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None]);
+    /// 
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     /// let b = Triangle { edges_idx: [0, 1, 2], neighbors: [Neighbors::None, Neighbors::None, Neighbors::None], };
     ///
     /// assert_eq!(a, b);
@@ -46,14 +47,14 @@ impl Triangle {
     ///
     /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
-    /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)
+    /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     ///
-    /// assert_eq!(triangle.nodes_idx[0] == 0);
+    /// assert_eq!(triangle.nodes_idx[0], 0);
     ///
     /// triangle.edges_idx = [1, 2, 0];
-    /// triangle.update_nodes_idx_from_edges(edges);
+    /// triangle.update_nodes_idx_from_edges(&edges);
     ///
-    /// assert_eq!(triangle.nodes_idx[0] == 1);
+    /// assert_eq!(triangle.nodes_idx[0], 1);
     /// ```
     pub fn update_nodes_idx_from_edges(&mut self, edges: &[Edge2D]) {
         let first_node = edges[self.edges_idx[0]].nodes_idx[0];
@@ -85,7 +86,7 @@ impl Triangle {
     ///
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     ///
-    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None]);
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     /// let b = [&edges[0], &edges[1], &edges[2]];
     ///
     /// assert_eq!(a.edges(&edges), b);
@@ -129,7 +130,7 @@ impl Cell2D for Triangle {
         ]
     }
 
-    /// Gives each node of the cell
+    /// Gives a reference to each node of the cell
     #[inline(always)]
     fn nodes<'a>(&self, nodes: &'a [Point2D]) -> Vec<&'a Point2D> {
         vec![
@@ -137,5 +138,40 @@ impl Cell2D for Triangle {
             &nodes[self.nodes_idx[1]],
             &nodes[self.nodes_idx[2]],
         ]
+    }
+
+    /// Gives a reference to each node of the cell
+    #[inline(always)]
+    fn edges<'a>(&self, edges: &'a [Edge2D]) -> Vec<&'a Edge2D> {
+        vec![
+            &edges[self.edges_idx[0]],
+            &edges[self.edges_idx[1]],
+            &edges[self.edges_idx[2]],
+        ]
+    }
+
+    /// Gives a mutable reference to each node of the cell.
+    /// Panics if some indices are the same.
+    #[inline(always)]
+    fn nodes_mut<'a>(&self, nodes: &'a mut [Point2D]) -> Vec<&'a mut Point2D> {
+        let (first_node, second_node, third_node) = indices!(
+            nodes,
+            self.nodes_idx[0],
+            self.nodes_idx[1],
+            self.nodes_idx[2]
+        );
+        vec![first_node, second_node, third_node]
+    }
+
+    /// Gives a mutable reference to each edge of the cell.
+    #[inline(always)]
+    fn edges_mut<'a>(&self, edges: &'a mut [Edge2D]) -> Vec<&'a mut Edge2D> {
+        let (first_edge, second_edge, third_edge) = indices!(
+            edges,
+            self.edges_idx[0],
+            self.edges_idx[1],
+            self.edges_idx[2]
+        );
+        vec![first_edge, second_edge, third_edge]
     }
 }

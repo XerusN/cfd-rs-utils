@@ -34,7 +34,7 @@ impl<T: Cell2D> Mesh2D<T> {
     ///
     /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
-    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None])];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
     ///
     /// assert_eq!(mesh, Mesh2D::<Triangle> {nodes, edges, cells,});
     /// ```
@@ -45,5 +45,46 @@ impl<T: Cell2D> Mesh2D<T> {
             edges,
             cells,
         }
+    }
+    
+    /// Gives the nodes from the cell indicated by the index.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    ///
+    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
+    ///
+    /// let mesh = Mesh2D::<Triangle>::new(nodes, edges, cells);
+    ///
+    /// assert_eq!(mesh.cell_nodes(0)[0], &Point2D::new(0.0, 1.0));
+    /// ```
+    /// 
+    /// # Panics
+    /// 
+    /// If the `cell_index` is out of bound in `self.cells` it will panic.
+    /// 
+    /// ```rust, should_panic
+    /// use cfd_rs_utils::*;
+    ///
+    /// let nodes = vec![Point2D::new(0.0, 1.0), Point2D::new(1.0, 3.0), Point2D::new(-1.0, 3.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
+    ///
+    /// let mesh = Mesh2D::<Triangle>::new(nodes, edges, cells);
+    ///
+    /// let node = mesh.cell_nodes(1);
+    /// ```
+    #[inline(always)]
+    pub fn cell_nodes(&self, cell_index: usize) -> Vec<&Point2D> {
+        self.cells[cell_index].nodes(&self.nodes)
+    }
+    
+    #[inline(always)]
+    pub fn cell_edges(&self, cell_index: usize) -> Vec<&Edge2D> {
+        self.cells[cell_index].edges(&self.edges)
     }
 }
