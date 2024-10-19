@@ -17,6 +17,7 @@ pub struct MeshBlock2D<T: Cell2D> {
 impl<T: Cell2D> MeshBlock2D<T> {
     /// Creates a new `MeshBlock2D`.
     /// Takes ownership of data to prevent cloning (data structure are expected to be huge in standard context).
+    /// It is recommanded to use this with empty vec, else your mesh isn't guaranteed to be correct, and multiple methods might panic.
     ///
     /// # Example
     ///
