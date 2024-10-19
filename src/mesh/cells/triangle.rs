@@ -297,15 +297,15 @@ impl Cell2D for Triangle {
             .len()
             != 3
         {
-            return Err((
-                "Wrong number of edges in Triangle (duplicated values)"
-            ).to_string());
+            return Err(("Wrong number of edges in Triangle (duplicated values)").to_string());
         }
         for edge in self.edges_idx() {
             if edge >= edges.len() {
                 return Err(format!("Edge ({edge}) out of bound in cell"));
             }
-            if let Err(err) = edges[edge].check(nodes) { return Err(format!("unvalid edge {edge} in cell => {err}")) }
+            if let Err(err) = edges[edge].check(nodes) {
+                return Err(format!("unvalid edge {edge} in cell => {err}"));
+            }
             edges_nodes.push(edges[edge].nodes_idx[0]);
             edges_nodes.push(edges[edge].nodes_idx[1]);
         }

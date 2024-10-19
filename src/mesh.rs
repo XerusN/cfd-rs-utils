@@ -100,7 +100,7 @@ impl<T: Cell2D> MeshBlock2D<T> {
                             cell_neighbors.push(edge_neighbor.clone());
                         }
                     }
-                    Neighbors::Boundary => cell_neighbors.push(edge_neighbor.clone()),
+                    Neighbors::Boundary(_) => cell_neighbors.push(edge_neighbor.clone()),
                     Neighbors::Cell(_) => cell_neighbors.push(edge_neighbor.clone()),
                 }
             }
@@ -121,7 +121,7 @@ impl<T: Cell2D> MeshBlock2D<T> {
                         self.edges[*edge].parents[i] = Neighbors::Cell(self.cells.len());
                         break;
                     }
-                    Neighbors::Boundary => (),
+                    Neighbors::Boundary(_) => (),
                     Neighbors::Cell(_) => (),
                 }
             }

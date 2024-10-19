@@ -174,7 +174,7 @@ impl Edge2D {
         for parent in &self.parents {
             match parent {
                 Neighbors::None => (),
-                Neighbors::Boundary => (),
+                Neighbors::Boundary(_) => (),
                 Neighbors::Cell(i) => cells[*i].update_nodes_idx_from_edges(edges),
             }
         }
