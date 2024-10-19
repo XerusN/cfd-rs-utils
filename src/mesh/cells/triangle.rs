@@ -1,8 +1,6 @@
 use core::f64;
 use itertools::Itertools;
 
-use crate::{edges, neighbor};
-
 use super::Edge2D;
 use super::{Cell2D, Neighbors};
 use indices::indices;
@@ -293,25 +291,21 @@ impl Cell2D for Triangle {
         let mut edges_nodes = vec![];
         if self
             .edges_idx
-            .to_vec()
             .into_iter()
             .unique()
             .collect::<Vec<usize>>()
             .len()
             != 3
         {
-            return Err(format!(
+            return Err((
                 "Wrong number of edges in Triangle (duplicated values)"
-            ));
+            ).to_string());
         }
         for edge in self.edges_idx() {
             if edge >= edges.len() {
                 return Err(format!("Edge ({edge}) out of bound in cell"));
             }
-            match edges[edge].check(nodes) {
-                Err(err) => return Err(format!("unvalid edge {edge} in cell => {err}")),
-                Ok(_) => (),
-            }
+            if let Err(err) = edges[edge].check(nodes) { return Err(format!("unvalid edge {edge} in cell => {err}")) }
             edges_nodes.push(edges[edge].nodes_idx[0]);
             edges_nodes.push(edges[edge].nodes_idx[1]);
         }
@@ -322,13 +316,13 @@ impl Cell2D for Triangle {
                 "Wrong number of nodes in Triangle (duplicated values) ({len} nodes)"
             ));
         }
-        for node in edges_nodes {
+        'outer: for node in edges_nodes {
             for node_idx in self.nodes_idx() {
                 if node == node_idx {
-                    break;
+                    continue 'outer;
                 }
             }
-            return Err(format!("node_idx and edges_idx do not match"));
+            return Err("node_idx and edges_idx do not match".to_string());
         }
         Ok(())
     }

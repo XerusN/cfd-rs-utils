@@ -164,7 +164,7 @@ impl<T: Cell2D> MeshBlock2D<T> {
     pub fn cell_nodes(&self, cell_index: usize) -> Vec<&Point2<f64>> {
         self.cells[cell_index].nodes(&self.nodes)
     }
-    
+
     /// Gives a mutable reference to nodes from the cell indicated by the index.
     ///
     /// # Example
