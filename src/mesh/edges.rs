@@ -1,12 +1,14 @@
 use nalgebra::{center, Point2, Vector2};
 
+use super::{Neighbors, Triangle};
+
 /// Struct used to describe edges in 2D.
 /// It is intended to be used as part of a mesh so it keeps the indices for the 2 nodes and eventually the indices of the parent cells.
 /// Only implemented for 2D since it needs more parent cell than 2 in 3D.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Edge2D {
     pub nodes_idx: [usize; 2],
-    pub parent_cells_idx: [Option<usize>; 2],
+    pub parents: [Neighbors; 2],
 }
 
 impl Edge2D {
@@ -21,7 +23,7 @@ impl Edge2D {
     /// let a = mesh::Edge2D::new(0, 1);
     /// let b = mesh::Edge2D {
     ///     nodes_idx: [0, 1],
-    ///     parent_cells_idx: [None; 2],
+    ///     parents: [Neighbors::None, Neighbors::None],
     /// };
     ///
     /// assert_eq!(a, b);
@@ -30,7 +32,7 @@ impl Edge2D {
     pub fn new(node_idx: usize, other_node_idx: usize) -> Edge2D {
         Edge2D {
             nodes_idx: [node_idx, other_node_idx],
-            parent_cells_idx: [None; 2],
+            parents: [Neighbors::None, Neighbors::None],
         }
     }
 
@@ -153,20 +155,28 @@ impl Edge2D {
     pub fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64> {
         center(&nodes[self.nodes_idx[1]], &nodes[self.nodes_idx[0]])
     }
-    
+
     /// Ensures that the edge is properly defined (no out of bound value or duplicated nodes)
     pub fn check(&self, nodes: &[Point2<f64>]) -> Result<(), String> {
         for node in self.nodes_idx {
             if node >= nodes.len() {
-                return Err(format!("Node {node} out of bound in edge"))
+                return Err(format!("Node ({node}) out of bound in edge"));
             }
         }
         if self.nodes_idx[0] == self.nodes_idx[1] {
             let node = self.nodes_idx[0];
-            return Err(format!("Both nodes have the same index {node}"))
+            return Err(format!("Both nodes have the same index ({node})"));
         }
         Ok(())
     }
-    
-    
+
+    pub fn update_parent_nodes_idx(&self, cells: &mut [Triangle], edges: &[Edge2D]) {
+        for parent in &self.parents {
+            match parent {
+                Neighbors::None => (),
+                Neighbors::Boundary => (),
+                Neighbors::Cell(i) => cells[*i].update_nodes_idx_from_edges(edges),
+            }
+        }
+    }
 }

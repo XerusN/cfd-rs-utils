@@ -10,4 +10,5 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 indices = "0.3.6"
+itertools = "0.13.0"
 nalgebra = "0.33.1"

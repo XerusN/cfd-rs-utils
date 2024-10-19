@@ -5,6 +5,17 @@ pub use triangle::Triangle;
 
 /// Trait used to define methods that 2D cells should implement in order to be used in a 2D cfd solver.
 pub trait Cell2D {
+    /// Gives the number of edges for this cell (and thus the number of nodes)
+    fn edge_number() -> usize;
+
+    /// Creates a new cell, `global_edges` is used to update nodes_idx
+    fn new_cell(
+        cell_edges_idx: &[usize],
+        cell_neighbors: &[Neighbors],
+        global_edges: &[Edge2D],
+        global_nodes: &[Point2<f64>],
+    ) -> Self;
+
     /// Compute the surface of the cell.
     fn area(&self, nodes: &[Point2<f64>]) -> f64;
 
@@ -22,7 +33,7 @@ pub trait Cell2D {
 
     /// Gives a mutable reference to each node of the cell.
     fn nodes_mut<'a>(&self, nodes: &'a mut [Point2<f64>]) -> Vec<&'a mut Point2<f64>>;
-    
+
     /// Ensures that the cell is properly defined (no out of bound value or duplicated edges/nodes)
     fn check(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Result<(), String>;
 }
