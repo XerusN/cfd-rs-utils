@@ -22,9 +22,9 @@ pub trait Cell2D {
 
     /// Gives a mutable reference to each node of the cell.
     fn nodes_mut<'a>(&self, nodes: &'a mut [Point2<f64>]) -> Vec<&'a mut Point2<f64>>;
-
-    /// Gives a mutable reference to each edge of the cell.
-    fn edges_mut<'a>(&self, edges: &'a mut [Edge2D]) -> Vec<&'a mut Edge2D>;
+    
+    /// Ensures that the cell is properly defined (no out of bound value or duplicated edges/nodes)
+    fn check(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Result<(), String>;
 }
 
 pub mod triangle;

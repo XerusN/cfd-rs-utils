@@ -6,6 +6,8 @@ pub mod cells;
 pub mod edges;
 pub mod neighbor;
 
+use std::error::Error;
+
 /// Represents a 2D mesh with cells (any type implementing the `Cell2D` trait), edges (`Edge2D`) and points (`Point2D`) informations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh2D<T: Cell2D> {
@@ -79,9 +81,56 @@ impl<T: Cell2D> Mesh2D<T> {
     pub fn cell_nodes(&self, cell_index: usize) -> Vec<&Point2<f64>> {
         self.cells[cell_index].nodes(&self.nodes)
     }
-
+    
+    /// Gives the nodes from the cell indicated by the index.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    ///
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(1.0, 3.0), Point2::<f64>::new(-1.0, 3.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
+    ///
+    /// let mesh = Mesh2D::<Triangle>::new(nodes, edges, cells);
+    ///
+    /// assert_eq!(mesh.cell_nodes(0)[0], &Point2::<f64>::new(0.0, 1.0));
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// If the `cell_index` is out of bound in `self.cells` it will panic.
+    ///
+    /// ```rust, should_panic
+    /// use cfd_rs_utils::*;
+    ///
+    /// let nodes = vec![Point2::<f64>::new(0.0, 1.0), Point2::<f64>::new(1.0, 3.0), Point2::<f64>::new(-1.0, 3.0)];
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let cells = vec![Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges)];
+    ///
+    /// let mesh = Mesh2D::<Triangle>::new(nodes, edges, cells);
+    ///
+    /// let node = mesh.cell_nodes(1);
+    /// ```
     #[inline(always)]
     pub fn cell_edges(&self, cell_index: usize) -> Vec<&Edge2D> {
         self.cells[cell_index].edges(&self.edges)
+    }
+    
+    /// Ensures that no out of bound value is stored in the mesh, thus ensures that no panic will happen when calling nodes or 
+    pub fn check_mesh(&self) -> Result<(), String> {
+        let node_len = self.nodes.len();
+        for edge in &self.edges {
+            for node in edge.nodes_idx {
+                if node > node_len {
+                    return Err("An edge is containing an out of bound node".to_string());
+                }
+            }
+        }
+        for cell in &self.cells {
+            for 
+        }
+        Ok(())
     }
 }

@@ -6,13 +6,16 @@ use indices::indices;
 use nalgebra::{Point2, Rotation2, Unit, Vector2};
 
 /// Represents a triangle.
-/// edges and nodes gives the indices of the data in the corresponding array.
-/// The nodes data may seem like a duplication but it appeared to me that using
+/// Edges and nodes gives the indices of the data in the corresponding array.
+/// 
+/// The nodes data may seem like a duplication but it appeared to me that using only edges complexifies (in term of computations too) the access to each node, which is used very often.
+/// As a trade-off the structure might not always be correct (edges and nodes not indicating the same points). Thats why edges and nodes indices are private, it prevents inconsistency in data.
+/// 
 /// `Neighbors` tells if the triangle has no neighnour, is a boundary cell, or gives the indices of the neighboring cells.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Triangle {
-    pub edges_idx: [usize; 3],
-    pub nodes_idx: [usize; 3],
+    edges_idx: [usize; 3],
+    nodes_idx: [usize; 3],
     pub neighbors: [Neighbors; 3],
 }
 
@@ -27,9 +30,6 @@ impl Triangle {
     ///
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
-    /// let b = Triangle { edges_idx: [0, 1, 2], neighbors: [Neighbors::None, Neighbors::None, Neighbors::None], nodes_idx: [0, 1, 2]};
-    ///
-    /// assert_eq!(a, b);
     /// ```
     #[inline(always)]
     pub fn new(edges_idx: [usize; 3], neighbors: [Neighbors; 3], edges: &[Edge2D]) -> Triangle {
@@ -43,6 +43,7 @@ impl Triangle {
     }
 
     /// Updates `nodes_idx` using `edges`
+    /// Necessary whenever priorly defined edges are changed (not the internal value but the array)
     ///
     /// # Example
     ///
@@ -53,12 +54,13 @@ impl Triangle {
     /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
     /// let mut triangle = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
     ///
-    /// assert_eq!(triangle.nodes_idx[0], 0);
+    /// assert_eq!(triangle.nodes_idx()[0], 0);
+    /// 
+    /// //update done when editing those fields
+    /// triangle.change_edge_idx(0, 1, &edges);
+    /// triangle.change_edge_idx(1, 0, &edges);
     ///
-    /// triangle.edges_idx = [1, 2, 0];
-    /// triangle.update_nodes_idx_from_edges(&edges);
-    ///
-    /// assert_eq!(triangle.nodes_idx[0], 1);
+    /// assert_eq!(triangle.nodes_idx()[0], 1);
     /// ```
     pub fn update_nodes_idx_from_edges(&mut self, edges: &[Edge2D]) {
         let first_node = edges[self.edges_idx[0]].nodes_idx[0];
@@ -101,6 +103,57 @@ impl Triangle {
             &edges[self.edges_idx[1]],
             &edges[self.edges_idx[2]],
         ]
+    }
+    
+    /// Gives a reference to the edge indices from the `Triangle`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    /// 
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    ///
+    /// assert_eq!(a.edges_idx()[1], 1);
+    /// ```
+    pub fn edges_idx(&self) -> [usize; 3] {
+        self.edges_idx
+    }
+    
+    /// Gives a reference to the nodes indices from the `Triangle`.
+    /// The order is not guaranteed.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    /// 
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    ///
+    /// assert_eq!(a.nodes_idx()[2], 2);
+    /// ```
+    pub fn nodes_idx(&self) -> [usize; 3] {
+        self.nodes_idx
+    }
+    
+    /// Edits an edge_idx value, then update nodes to keep data synchronized.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use cfd_rs_utils::*;
+    /// 
+    /// let edges = vec![Edge2D::new(0, 1), Edge2D::new(1, 2), Edge2D::new(2, 0)];
+    /// let a = Triangle::new([0, 1, 2], [Neighbors::None, Neighbors::None, Neighbors::None], &edges);
+    /// let b = [&edges[0], &edges[1], &edges[2]];
+    ///
+    /// assert_eq!(a.edges(&edges), b);
+    /// ```
+    pub fn change_edge_idx(&mut self, new_value: usize, internal_edge_to_edit: usize, edges: &[Edge2D]) -> () {
+        self.edges_idx[internal_edge_to_edit] = new_value;
+        self.update_nodes_idx_from_edges(edges);
     }
 }
 
@@ -200,7 +253,10 @@ impl Cell2D for Triangle {
     }
 
     /// Gives a mutable reference to each node of the cell.
-    /// Panics if some indices are the same.
+    /// 
+    /// # Panics
+    /// 
+    /// If some indices are the same or out of bound (i.e. if the triangle is not a triangle).
     #[inline(always)]
     fn nodes_mut<'a>(&self, nodes: &'a mut [Point2<f64>]) -> Vec<&'a mut Point2<f64>> {
         let (first_node, second_node, third_node) = indices!(
@@ -211,17 +267,39 @@ impl Cell2D for Triangle {
         );
         vec![first_node, second_node, third_node]
     }
-
-    /// Gives a mutable reference to each edge of the cell.
-    /// Panics if some indices are the same
-    #[inline(always)]
-    fn edges_mut<'a>(&self, edges: &'a mut [Edge2D]) -> Vec<&'a mut Edge2D> {
-        let (first_edge, second_edge, third_edge) = indices!(
-            edges,
-            self.edges_idx[0],
-            self.edges_idx[1],
-            self.edges_idx[2]
-        );
-        vec![first_edge, second_edge, third_edge]
+    
+    /// Ensures that the cell is properly defined (no out of bound value or duplicated edges/nodes)
+    fn check(&self, edges: &[Edge2D], nodes: &[Point2<f64>]) -> Result<(), String> {
+        for edge in self.edges_idx() {
+            if edge > edges.len() {
+                return Err(format!("Edge {edge} out of bound in cell"));
+            }
+            match edges[edge].check(nodes) {
+                Err(err) => return Err(format!("unvalid edge {edge} in cell => {err}")),
+                Ok(_) => (),
+            }
+        }
+        Ok(())
     }
+    
+    // /// Gives a mutable reference to each edge of the cell.
+    // /// 
+    // /// # Panics
+    // /// 
+    // /// If some indices are the same or out of bound (i.e. if the triangle is not a triangle).
+    // /// 
+    // /// # Safety
+    // /// 
+    // /// Not dangerous for memory, but might cause errors in some triangles since nodes_idx are stored and might not be still be correct after this function.
+    // /// Make sure to check each parent nodes indices after using it.
+    // #[inline(always)]
+    // unsafe fn edges_mut<'a>(&self, edges: &'a mut [Edge2D]) -> Vec<&'a mut Edge2D> {
+    //     let (first_edge, second_edge, third_edge) = indices!(
+    //         edges,
+    //         self.edges_idx[0],
+    //         self.edges_idx[1],
+    //         self.edges_idx[2]
+    //     );
+    //     vec![first_edge, second_edge, third_edge]
+    // }
 }

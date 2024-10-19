@@ -153,4 +153,20 @@ impl Edge2D {
     pub fn center(&self, nodes: &[Point2<f64>]) -> Point2<f64> {
         center(&nodes[self.nodes_idx[1]], &nodes[self.nodes_idx[0]])
     }
+    
+    /// Ensures that the edge is properly defined (no out of bound value or duplicated nodes)
+    pub fn check(&self, nodes: &[Point2<f64>]) -> Result<(), String> {
+        for node in self.nodes_idx {
+            if node >= nodes.len() {
+                return Err(format!("Node {node} out of bound in edge"))
+            }
+        }
+        if self.nodes_idx[0] == self.nodes_idx[1] {
+            let node = self.nodes_idx[0];
+            return Err(format!("Both nodes have the same index {node}"))
+        }
+        Ok(())
+    }
+    
+    
 }
