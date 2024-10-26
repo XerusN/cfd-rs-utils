@@ -19,7 +19,7 @@ pub struct MeshBlock2D<T: Cell2D> {
     cells: Vec<T>,
     boundaries: Vec<Boundary2D>,
     boundary_conditions: Vec<String>,
-    finished: bool,
+    is_finished: bool,
 }
 
 impl<T: Cell2D> MeshBlock2D<T> {
@@ -43,13 +43,64 @@ impl<T: Cell2D> MeshBlock2D<T> {
     ) -> Result<Self, String> {
         todo!()
     }
-    
-    /// Checks if the mesh is valid, mostly used internally.
-    /// Quite expensive operation.
+
+    /// Checks if the mesh is valid, mostly used internally. When using the API the mesh should be valid at any moment.
     pub fn check(&self) -> Result<(), String> {
         todo!()
     }
-    
-    
-    
+
+    /// Returns the current state of the mesh.
+    /// Finished means that every cell has neighbors (either an other cell or a boundary).
+    pub fn is_finished(&self) -> bool {
+        self.is_finished
+    }
+
+    /// Checks if the mesh is finished and change its status accordingly.
+    /// If the mesh is not finished, returns an error.
+    pub fn finish_mesh(&mut self) -> Result<(), String> {
+        todo!();
+    }
+
+    pub fn edit_mesh(&mut self) {}
+
+    /// Returns an immutable reference to each cell.
+    pub fn cells(&self) -> &Vec<T> {
+        &self.cells
+    }
+
+    /// Returns an immutable reference to each edge.
+    pub fn edges(&self) -> &Vec<Edge2D> {
+        &self.edges
+    }
+
+    /// Returns an immutable reference to each node.
+    pub fn nodes(&self) -> &Vec<Point2<f64>> {
+        &self.nodes
+    }
+
+    /// Returns an immutable reference to the boundaries
+    pub fn boundaries(&self) -> &Vec<Boundary2D> {
+        &self.boundaries
+    }
+
+    /// Returns an immutable reference to the boundary conditions.
+    pub fn boundary_conditions(&self) -> &Vec<String> {
+        &self.boundary_conditions
+    }
+
+    /// Returns an immutable reference to each nodes of a cell.
+    pub fn cell_nodes(&self, cell_idx: usize) -> Option<&Vec<Point2<f64>>> {
+        match self.cells.get(cell_idx) {
+            None => None,
+            Some(cell) => Some(cell.nodes(&self.nodes)),
+        }
+    }
+
+    /// Returns an immutable reference to each edges of a cell.
+    pub fn cell_edges(&self, cell_idx: usize) -> Option<&Vec<Edge2D>> {
+        match self.cells.get(cell_idx) {
+            None => None,
+            Some(cell) => Some(cell.edges(&self.edges)),
+        }
+    }
 }

@@ -28,7 +28,7 @@ impl Boundary2D {
             Err(error) => Err(format!("Invalid boundary, got : {}", error)),
         }
     }
-    
+
     /// Checks the validity of the boundary
     pub fn check(
         &self,
@@ -37,5 +37,15 @@ impl Boundary2D {
         global_boundary_condition: &[String],
     ) -> Result<(), String> {
         todo!()
+    }
+
+    /// Returns an immutable the indices of the edges contained in this boundary
+    pub fn edges_idx(&self) -> &Vec<usize> {
+        &self.edges_idx
+    }
+
+    /// Returns an immutable the indices of the boundary conditions for the edges of this boundary.
+    pub fn boundary_condition_idx(&self) -> &Vec<usize> {
+        &self.boundary_condition_idx
     }
 }
