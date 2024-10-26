@@ -39,34 +39,28 @@ impl Boundary2D {
             "boundary_edge_idx is out of bound in global_edges"
         );
         let edge_nodes = global_edges[boundary_edge_idx].nodes_idx;
-        let (mut first_boundary_node, mut last_boundary_node) = (false, false);
-        for i in edge_nodes {
-            if i == *self.edges_idx.last().expect("global_edges is empty") {
-                last_boundary_node = true;
+        let (mut first_boundary_node, mut last_boundary_node) = (None, None);
+        for i in 0..edge_nodes.len() {
+            if edge_nodes[i] == *self.edges_idx.last().expect("global_edges is empty") {
+                last_boundary_node = Some(i);
             }
-            if i == *self.edges_idx.first().expect("global_edges is empty") {
-                first_boundary_node = true;
+            if edge_nodes[i] == *self.edges_idx.first().expect("global_edges is empty") {
+                first_boundary_node = Some(i);
             }
         }
-
-        assert!(
-            last_boundary_node,
-            "edge is not connected to the last edge of the boundary"
-        );
+        
+        let last_boundary_node = last_boundary_node.expect("edge is not connected to the last edge of the boundary");
 
         let mut place_found = false;
-        for i in 0..global_edges[boundary_edge_idx].parents.len() {
-            if let Neighbors::None = global_edges[boundary_edge_idx].parents[i] {
-                global_edges[boundary_edge_idx].parents[i] = Neighbors::Boundary(boundary_index);
-                place_found = true;
-                break;
-            }
+        if let Neighbors::None = global_edges[boundary_edge_idx].parents[last_boundary_node] {
+            global_edges[boundary_edge_idx].parents[last_boundary_node] = Neighbors::Boundary(boundary_index);
+            place_found = true;
         }
-        assert!(place_found, "No parent place free on the edge");
+        assert!(place_found, "Expected parent place not available on edge");
 
         self.edges_idx.push(boundary_edge_idx);
 
-        if first_boundary_node {
+        if first_boundary_node.is_some() {
             self.locked = true
         }
     }

@@ -84,30 +84,33 @@ impl<T: Cell2D> MeshBlock2D<T> {
             "Wrong number of edges provided"
         );
 
+        
         // checks if the new cell is not upon an other and determines the cell new neighbors
         let mut cell_neighbors: Vec<Neighbors> = Vec::new();
-        for edge in cell_edges_idx {
-            assert!(*edge < self.edges.len());
-            let mut place_found = false;
-            for i in 0..self.edges[*edge].parents.len() {
-                let edge_neighbor = &self.edges[*edge].parents[i];
-                match edge_neighbor {
-                    Neighbors::None => {
-                        if !place_found {
-                            //self.edges[*edge].parents[i] = Neighbors::Cell(self.cells.len());
-                            place_found = true;
-                        } else {
-                            cell_neighbors.push(edge_neighbor.clone());
-                        }
+        
+        let edge = cell_edges_idx[0];
+        assert!(edge < self.edges.len());
+        let mut place_found: [[Option<usize>; 2]; 3] = [[None; 2]; 3];
+        for i in 0..self.edges[edge].parents.len() {
+            let edge_neighbor = &self.edges[edge].parents[i];
+            match edge_neighbor {
+                Neighbors::None => {
+                    if !place_found {
+                        //self.edges[*edge].parents[i] = Neighbors::Cell(self.cells.len());
+                        place_found[0][i] = Some(i);
+                    } else {
+                        cell_neighbors.push(edge_neighbor.clone());
                     }
-                    Neighbors::Boundary(_) => cell_neighbors.push(edge_neighbor.clone()),
-                    Neighbors::Cell(_) => cell_neighbors.push(edge_neighbor.clone()),
                 }
-            }
-            if !place_found {
-                panic!("Trying to create a cell on top of another")
+                Neighbors::Boundary(_) => cell_neighbors.push(edge_neighbor.clone()),
+                Neighbors::Cell(_) => cell_neighbors.push(edge_neighbor.clone()),
             }
         }
+        if !place_found {
+            panic!("Trying to create a cell on top of another")
+        }
+        
+        
 
         let cell = T::new_cell(cell_edges_idx, &cell_neighbors, &self.edges, &self.nodes);
 
