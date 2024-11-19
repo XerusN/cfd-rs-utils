@@ -29,7 +29,10 @@ impl Edge2D {
     }
 
     /// Returns an immutable reference to the neighbors of the edge
-    pub fn neighbors(&self) -> &[Neighbor2D; 2] {
+    pub unsafe fn neighbors(&self) -> &[Neighbor2D; 2] {
         &self.neighbors
     }
+    
+    pub fn update_neighbors(&mut self) {}
+    
 }

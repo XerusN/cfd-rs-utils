@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 pub use boundary::*;
 pub use cells::*;
@@ -35,6 +35,12 @@ impl<T: Cell2D> Deref for FinishedMeshBlock2D<T> {
     }
 }
 
+impl<T: Cell2D> DerefMut for FinishedMeshBlock2D<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 /// Enables to edit the mesh without the risk to passing it in a function that does not support an incomplete mesh.
 pub struct EditableMeshBlock2D<T: Cell2D>(MeshBlock2D<T>);
 
@@ -42,6 +48,12 @@ impl<T: Cell2D> Deref for EditableMeshBlock2D<T> {
     type Target = MeshBlock2D<T>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T: Cell2D> DerefMut for EditableMeshBlock2D<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -132,20 +144,25 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
     
     /// Checks if the mesh is finished and change its status accordingly.
     /// If the mesh is not finished, returns an error.
-    pub fn finish(self) -> Result<FinishedMeshBlock2D<T>, String> {
+    /// Checks the topology.
+    pub fn finish(mut self) -> Result<FinishedMeshBlock2D<T>, String> {
         match self.check() {
             Err(e) => Err(e),
-            Ok(_) => Ok(FinishedMeshBlock2D(self.0)),
+            Ok(_) => {
+                //self.edges.iter_mut().map(|edge| edge.update_neighbors());
+                Ok(FinishedMeshBlock2D(self.0))
+            },
         }
     }
     
     /// When doing this, you are not checking the mesh before converting it.
     /// You should be aware that any badly defined mesh might result in undefinied behaviour when using FinishedMeshBlock2D.
-    pub unsafe fn finish_without_check(self) -> FinishedMeshBlock2D<T> {
+    pub unsafe fn finish_without_check(mut self) -> FinishedMeshBlock2D<T> {
         FinishedMeshBlock2D(self.0)
     }
     
     /// Checks if the mesh is valid, mostly used internally. When using the safe API the mesh should be valid at any moment.
+    /// Checks the topology.
     pub fn check(&self) -> Result<(), String> {
         todo!()
     }
