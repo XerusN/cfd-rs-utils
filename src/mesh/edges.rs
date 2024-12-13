@@ -32,7 +32,8 @@ impl Edge2D {
     pub unsafe fn neighbors(&self) -> &[Neighbor2D; 2] {
         &self.neighbors
     }
-    
-    pub fn update_neighbors(&mut self) {}
-    
+
+    pub fn update_neighbors(&mut self) {
+        todo!()
+    }
 }

@@ -1,4 +1,5 @@
 use std::ops::{Deref, DerefMut};
+use super::Error;
 
 pub use boundary::*;
 pub use cells::*;
@@ -17,7 +18,8 @@ pub mod neighbor;
 /// The goal is that the API user won't be able to create segfault using this API.
 /// The risk was present since (for example) cells are pointing to nodes through indices.
 /// The use of f64 for coordinates is enforced since the code is meant to be used in scientific computations.
-pub struct MeshBlock2D<T: Cell2D> {
+#[derive(Debug, Clone, Default)]
+struct MeshBlock2D<T: Cell2D> {
     nodes: Vec<Point2<f64>>,
     edges: Vec<Edge2D>,
     cells: Vec<T>,
@@ -26,36 +28,12 @@ pub struct MeshBlock2D<T: Cell2D> {
 }
 
 /// Safe struct for the mesh, guarantees that the mesh block is valid.
+#[derive(Debug, Clone)]
 pub struct FinishedMeshBlock2D<T: Cell2D>(MeshBlock2D<T>);
 
-impl<T: Cell2D> Deref for FinishedMeshBlock2D<T> {
-    type Target = MeshBlock2D<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T: Cell2D> DerefMut for FinishedMeshBlock2D<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 /// Enables to edit the mesh without the risk to passing it in a function that does not support an incomplete mesh.
+#[derive(Debug, Clone, Default)]
 pub struct EditableMeshBlock2D<T: Cell2D>(MeshBlock2D<T>);
-
-impl<T: Cell2D> Deref for EditableMeshBlock2D<T> {
-    type Target = MeshBlock2D<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T: Cell2D> DerefMut for EditableMeshBlock2D<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 impl<T: Cell2D> MeshBlock2D<T> {
     /// Returns an immutable reference to each cell.
@@ -98,15 +76,15 @@ impl<T: Cell2D> MeshBlock2D<T> {
             Some(cell) => Some(cell.edges(&self.edges)),
         }
     }
-    
+
     pub fn cell(&self, cell_idx: CellIndex) -> Option<&T> {
         self.cells.get(*cell_idx)
     }
-    
+
     pub fn edge(&self, edge_idx: EdgeIndex) -> Option<&Edge2D> {
         self.edges.get(*edge_idx)
     }
-    
+
     pub fn node(&self, node_idx: NodeIndex) -> Option<&Point2<f64>> {
         self.nodes.get(*node_idx)
     }
@@ -118,7 +96,6 @@ impl<T: Cell2D> FinishedMeshBlock2D<T> {
         todo!()
     }
 }
-
 
 impl<T: Cell2D> EditableMeshBlock2D<T> {
     /// Creates a new instance of mesh with only boundaries.
@@ -141,29 +118,70 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
     ) -> Result<Self, String> {
         todo!()
     }
-    
+
     /// Checks if the mesh is finished and change its status accordingly.
     /// If the mesh is not finished, returns an error.
     /// Checks the topology.
-    pub fn finish(mut self) -> Result<FinishedMeshBlock2D<T>, String> {
+    pub fn finish(mut self) -> Result<FinishedMeshBlock2D<T>, Error> {
         match self.check() {
             Err(e) => Err(e),
             Ok(_) => {
-                //self.edges.iter_mut().map(|edge| edge.update_neighbors());
+                self.0.edges
+                    .iter_mut()
+                    .for_each(|edge| edge.update_neighbors());
+                self.0.cells.iter_mut().for_each(|cell| cell.update_nodes());
                 Ok(FinishedMeshBlock2D(self.0))
-            },
+            }
         }
     }
-    
+
     /// When doing this, you are not checking the mesh before converting it.
-    /// You should be aware that any badly defined mesh might result in undefinied behaviour when using FinishedMeshBlock2D.
-    pub unsafe fn finish_without_check(mut self) -> FinishedMeshBlock2D<T> {
+    /// You should be aware that any badly defined mesh might result in undefinied behaviour when using the value later.
+    pub unsafe fn finish_without_check(self) -> FinishedMeshBlock2D<T> {
         FinishedMeshBlock2D(self.0)
     }
-    
+
     /// Checks if the mesh is valid, mostly used internally. When using the safe API the mesh should be valid at any moment.
     /// Checks the topology.
-    pub fn check(&self) -> Result<(), String> {
+    pub fn check(&self) -> Result<(), Error> {
+        todo!()
+    }
+    
+    /// Add a cell to the mesh.
+    /// Will return an error if the edges are not contiguous.
+    pub fn add_cells(&mut self, edges_idx: Vec<&[EdgeIndex]>) -> Result<(), Error> {
+        todo!()
+    }
+    
+    pub fn add_edges(&mut self, edges: Vec<Edge2D>) -> Result<(), Error> {
+        todo!()
+    }
+    
+    pub fn add_nodes(&mut self, nodes: Vec<Point2<f64>>) {
+        todo!()
+    }
+    
+    pub fn change_cell(&mut self, cell_idx: CellIndex, edges: Option<&[EdgeIndex]>) -> Result<(), Error> {
+        todo!()
+    }
+    
+    ///The above cells should be removed first
+    pub unsafe fn remove_edge(&mut self, edge_idx: EdgeIndex) -> Result<(), Error> {
+        todo!()
+    }
+    
+    pub fn remove_cell(&mut self, cell_idx: EdgeIndex) -> Result<(), Error> {
+        todo!()
+    }
+    
+    /// The above cells and edges should be removed first.
+    /// Quite long operation since the node removal swaps the last node of the array, thus requiring to adjust the indices in the above cells.
+    pub unsafe fn remove_node(&mut self, node_idx: NodeIndex) -> Result<(), Error> {
+        todo!()
+    }
+    
+    /// Swaps the contact edge in order to have it connect to a 
+    pub fn swap_edge(&mut self, cells_idx: (CellIndex, CellIndex)) -> Result<(), Error> {
         todo!()
     }
     

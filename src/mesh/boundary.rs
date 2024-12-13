@@ -6,6 +6,7 @@ use crate::indices::*;
 /// Defines a boundary for meshing purpose.
 /// In 2D the boundary is a closed (geometrically speaking) edge list.
 /// It also contains an index referecing the boundary condition block to which each edge is linked.
+#[derive(Debug, Clone, Default)]
 pub struct Boundary2D {
     edges_idx: Vec<EdgeIndex>,
     boundary_condition_idx: Vec<BoundaryConditionIndex>,
