@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use super::Error;
 
 pub use boundary::*;
@@ -62,7 +61,7 @@ impl<T: Cell2D> MeshBlock2D<T> {
     }
 
     /// Returns an immutable reference to each nodes of a cell.
-    pub fn cell_nodes(&self, cell_idx: CellIndex) -> Option<&Vec<Point2<f64>>> {
+    pub fn cell_nodes(&self, cell_idx: CellIndex) -> Option<Vec<&Point2<f64>>> {
         match self.cells.get(*cell_idx) {
             None => None,
             Some(cell) => Some(cell.nodes(&self.nodes)),
@@ -70,7 +69,7 @@ impl<T: Cell2D> MeshBlock2D<T> {
     }
 
     /// Returns an immutable reference to each edges of a cell.
-    pub fn cell_edges(&self, cell_idx: CellIndex) -> Option<&Vec<Edge2D>> {
+    pub fn cell_edges(&self, cell_idx: CellIndex) -> Option<Vec<&Edge2D>> {
         match self.cells.get(*cell_idx) {
             None => None,
             Some(cell) => Some(cell.edges(&self.edges)),
@@ -93,7 +92,15 @@ impl<T: Cell2D> MeshBlock2D<T> {
 impl<T: Cell2D> FinishedMeshBlock2D<T> {
     /// Enables to edit the mesh
     pub fn edit(self) -> EditableMeshBlock2D<T> {
-        todo!()
+        unsafe {
+            EditableMeshBlock2D::new_uncheck(
+                self.0.nodes,
+                self.0.edges,
+                self.0.cells,
+                self.0.boundaries,
+                self.0.boundary_conditions,
+            )
+        }
     }
 }
 
@@ -108,15 +115,36 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
         todo!()
     }
 
-    /// Creates a new instance of mesh (completed mesh only, used to create mesh from file import).
-    pub fn new_from_import(
+    // /// Creates a new instance of mesh (completed mesh only, used to create mesh from file import).
+    // pub fn new_from_import(
+    //     nodes: Vec<Point2<f64>>,
+    //     edges: Vec<Edge2D>,
+    //     cells: Vec<T>,
+    //     boundaries: Vec<Boundary2D>,
+    //     boundary_conditions: Vec<String>,
+    // ) -> Result<Self, String> {
+    //     todo!()
+    // }
+
+    /// Creates a new ediatble mesh, no topology check.
+    /// 
+    /// # Safety
+    /// 
+    /// Can produce undefined behaviours later if the mesh topology is not right.
+    pub unsafe fn new_uncheck(
         nodes: Vec<Point2<f64>>,
         edges: Vec<Edge2D>,
         cells: Vec<T>,
         boundaries: Vec<Boundary2D>,
         boundary_conditions: Vec<String>,
-    ) -> Result<Self, String> {
-        todo!()
+    ) -> Self {
+        EditableMeshBlock2D(MeshBlock2D {
+            nodes,
+            edges,
+            cells,
+            boundaries,
+            boundary_conditions,
+        })
     }
 
     /// Checks if the mesh is finished and change its status accordingly.
@@ -126,7 +154,8 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
         match self.check() {
             Err(e) => Err(e),
             Ok(_) => {
-                self.0.edges
+                self.0
+                    .edges
                     .iter_mut()
                     .for_each(|edge| edge.update_neighbors());
                 self.0.cells.iter_mut().for_each(|cell| cell.update_nodes());
@@ -146,43 +175,46 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
     pub fn check(&self) -> Result<(), Error> {
         todo!()
     }
-    
+
     /// Add a cell to the mesh.
     /// Will return an error if the edges are not contiguous.
     pub fn add_cells(&mut self, edges_idx: Vec<&[EdgeIndex]>) -> Result<(), Error> {
         todo!()
     }
-    
+
     pub fn add_edges(&mut self, edges: Vec<Edge2D>) -> Result<(), Error> {
         todo!()
     }
-    
+
     pub fn add_nodes(&mut self, nodes: Vec<Point2<f64>>) {
         todo!()
     }
-    
-    pub fn change_cell(&mut self, cell_idx: CellIndex, edges: Option<&[EdgeIndex]>) -> Result<(), Error> {
+
+    pub fn change_cell(
+        &mut self,
+        cell_idx: CellIndex,
+        edges: Option<&[EdgeIndex]>,
+    ) -> Result<(), Error> {
         todo!()
     }
-    
+
     ///The above cells should be removed first
     pub unsafe fn remove_edge(&mut self, edge_idx: EdgeIndex) -> Result<(), Error> {
         todo!()
     }
-    
+
     pub fn remove_cell(&mut self, cell_idx: EdgeIndex) -> Result<(), Error> {
         todo!()
     }
-    
+
     /// The above cells and edges should be removed first.
     /// Quite long operation since the node removal swaps the last node of the array, thus requiring to adjust the indices in the above cells.
     pub unsafe fn remove_node(&mut self, node_idx: NodeIndex) -> Result<(), Error> {
         todo!()
     }
-    
-    /// Swaps the contact edge in order to have it connect to a 
+
+    /// Swaps the contact edge in order to have it connect to a
     pub fn swap_edge(&mut self, cells_idx: (CellIndex, CellIndex)) -> Result<(), Error> {
         todo!()
     }
-    
 }
