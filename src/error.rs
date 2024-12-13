@@ -10,8 +10,9 @@ pub enum Error {
     EdgeOutOfBound { index: EdgeIndex, length: usize },
     #[error("Tried to reach out of bound node (index {index:?} when their is {length:?} nodes)")]
     NodeOutOfBound { index: NodeIndex, length: usize },
-    
+    #[error("Tried to reach out of bound (index {index:?} when len() is {length:?})")]
+    OutOfBound { index: usize, length: usize },
+
     #[error("Wrong number of element specified (got {got:?}, expected {expected:?})")]
     WrongSliceLength { got: usize, expected: usize },
-    
 }

@@ -8,3 +8,4 @@
 
 ### Things to do in already implemented functions
 [ ] triangle::new (Check edges and neighbor ordering)
+[ ] edge::check (Add neighbor check)

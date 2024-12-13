@@ -14,7 +14,7 @@ pub trait Cell2D: Sized {
 
     /// Returns the edges of the cell.
     fn edges<'a>(&self, global_edges: &'a [Edge2D]) -> Vec<&'a Edge2D>;
-    
+
     /// Returns the nodes of the cell.
     fn nodes<'a>(&self, global_nodes: &'a [Point2<f64>]) -> Vec<&'a Point2<f64>>;
 

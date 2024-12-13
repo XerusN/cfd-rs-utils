@@ -127,9 +127,9 @@ impl<T: Cell2D> EditableMeshBlock2D<T> {
     // }
 
     /// Creates a new ediatble mesh, no topology check.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// Can produce undefined behaviours later if the mesh topology is not right.
     pub unsafe fn new_uncheck(
         nodes: Vec<Point2<f64>>,
