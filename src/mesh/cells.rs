@@ -10,7 +10,7 @@ pub mod triangle;
 
 pub trait Cell2D: Sized {
     /// Creates a valid new instance of a cell.
-    fn new(edges_idx: &[EdgeIndex]) -> Result<Self, Error>;
+    fn new(edges_idx: &[EdgeIndex], neighbors: &[Neighbor2D]) -> Result<Self, Error>;
 
     /// Returns the edges of the cell.
     fn edges<'a>(&self, global_edges: &'a [Edge2D]) -> Vec<&'a Edge2D>;
@@ -31,7 +31,7 @@ pub trait Cell2D: Sized {
     /// Is abstracted has safe in the FinishedBlockMesh2D.
     unsafe fn fast_surface(&self) -> f64;
 
-    unsafe fn neighbors(&self) -> f64;
+    unsafe fn neighbors(&self) -> Vec<&Neighbor2D>;
 
     /// Computes the length of the edges.
     fn edges_length(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> Vec<f64>;
