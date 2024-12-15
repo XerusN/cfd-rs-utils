@@ -31,6 +31,14 @@ pub trait Cell2D: Sized {
     /// Is abstracted has safe in the FinishedBlockMesh2D.
     unsafe fn fast_surface(&self) -> f64;
 
+    /// Computes the center coordinates.
+    fn center(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> Point2<f64>;
+
+    /// Computes the surface.
+    /// Defined as unsafe since it uses points positions which may not be valid when editing the mesh.
+    /// Is abstracted has safe in the FinishedBlockMesh2D.
+    unsafe fn fast_center(&self) -> Point2<f64>;
+
     unsafe fn neighbors(&self) -> Vec<&Neighbor2D>;
 
     /// Computes the length of the edges.

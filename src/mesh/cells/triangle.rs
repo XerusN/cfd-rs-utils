@@ -62,19 +62,37 @@ impl Cell2D for Triangle {
     }
 
     /// Computes the surface.
-    fn surface(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> f64;
+    fn surface(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> f64 {
+        todo!()
+    }
 
     /// Computes the surface.
     /// Defined as unsafe since it uses points positions which may not be valid when editing the mesh.
     /// Is abstracted has safe in the FinishedBlockMesh2D.
-    unsafe fn fast_surface(&self) -> f64;
+    unsafe fn fast_surface(&self) -> f64 {
+        todo!()
+    }
+
+    /// Computes the center coordinates.
+    fn center(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> Point2<f64> {
+        todo!()
+    }
+
+    /// Computes the surface.
+    /// Defined as unsafe since it uses points positions which may not be valid when editing the mesh.
+    /// Is abstracted has safe in the FinishedBlockMesh2D.
+    unsafe fn fast_center(&self) -> Point2<f64> {
+        todo!()
+    }
 
     unsafe fn neighbors(&self) -> Vec<&Neighbor2D> {
         vec![&self.neighbors[0], &self.neighbors[1], &self.neighbors[2]]
     }
 
     /// Computes the length of the edges.
-    fn edges_length(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> Vec<f64>;
+    fn edges_length(&self, global_edges: &[Edge2D], global_nodes: &[Point2<f64>]) -> Vec<f64> {
+        todo!()
+    }
 
     /// Computes the length of the edges.
     /// Defined as unsafe since it is meant to use points positions (known internally) which may not be valid when editing the mesh.
@@ -88,6 +106,9 @@ impl Cell2D for Triangle {
     }
 
     /// Updates the point positions to match the real one in the cell.
+    /// Enables to use fast (and unsafe) methods linked to the cell (like fast_surface) if the cell is not modified later.
     /// Should not be useful in FinishedMeshBlock.
-    fn update_nodes(&mut self);
+    fn update_nodes(&mut self) {
+        todo!()
+    }
 }

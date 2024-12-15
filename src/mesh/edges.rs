@@ -29,7 +29,7 @@ impl Edge2D {
         global_neighbors: &[Neighbor2D],
     ) -> Result<(), Error> {
         for node in self.nodes_idx {
-            if node >= global_nodes.len() {
+            if *node >= global_nodes.len() {
                 return Err(Error::NodeOutOfBound {
                     index: node,
                     length: global_nodes.len(),
