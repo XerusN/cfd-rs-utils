@@ -1,6 +1,6 @@
-use crate::boundary::Boundary;
+use crate::{boundary::Boundary, errors::MeshError};
 use indices::*;
-use nalgebra::Point2;
+use nalgebra::{distance, Point2};
 
 pub mod indices;
 
@@ -33,7 +33,7 @@ pub struct Mutable2DMesh {
 }
 
 impl Mutable2DMesh {
-    /// Creates a mesh with only boundaries defined
+    /// Creates a mesh with only boundaries defined.
     pub fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
         he_to_vertex: Vec<VertexIndex>,
@@ -43,7 +43,7 @@ impl Mutable2DMesh {
         todo!()
     }
 
-    /// Gets all the vertices of an half-edge
+    /// Gets all the vertices of an half-edge.
     pub fn vertices_from_he(&self, he_id: HalfEdgeIndex) -> [VertexIndex; 2] {
         [
             self.he_to_vertex[he_id],
@@ -51,7 +51,7 @@ impl Mutable2DMesh {
         ]
     }
 
-    /// Gets all half-edges from a parent (Cell or boundary)
+    /// Gets all half-edges from a parent (Cell or boundary).
     pub fn he_from_parent(&self, parent_id: ParentIndex) -> Vec<HalfEdgeIndex> {
         let first_he = self.parent_to_first_he[parent_id];
         let mut result = vec![first_he];
@@ -65,28 +65,132 @@ impl Mutable2DMesh {
         result
     }
 
-    /// Gets all vertices from a parent (Cell or boundary)
+    /// Gets all vertices from a parent (Cell or boundary).
     pub fn vertices_from_parent(&self, parent_id: ParentIndex) -> Vec<VertexIndex> {
         self.he_from_parent(parent_id)
             .into_iter()
             .map(|he_id| self.he_to_vertex[he_id])
             .collect()
     }
-    
-    /// Gets the parent from an HalfEdge
+
+    /// Gets the parent from an HalfEdge.
     pub fn parent_from_he(&self, he_id: HalfEdgeIndex) -> ParentIndex {
         self.he_to_parent[he_id]
     }
-    
-    /// Gets the twin HalfEdge from an HalfEdge
+
+    /// Gets the twin HalfEdge from an HalfEdge.
     pub fn twin_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
         self.he_to_twin[he_id]
     }
-    
+
+    /// Gets the next HalfEdge from an HalfEdge.
+    pub fn next_he_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
+        self.he_to_next_he[he_id]
+    }
+
+    /// Gets the previous HalfEdge from an HalfEdge.
+    pub fn prev_he_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
+        self.he_to_prev_he[he_id]
+    }
+
     /// Gets the parents adjacent to another.
     /// This may have strange behaviours when used on a boundary.
     pub fn neighbors_from_parent(&self, parent_id: ParentIndex) -> Vec<ParentIndex> {
-        self.he_from_parent(parent_id).into_iter().map(|he_id| self.he_to_parent[self.he_to_twin[he_id]]).collect()
+        self.he_from_parent(parent_id)
+            .into_iter()
+            .map(|he_id| self.he_to_parent[self.he_to_twin[he_id]])
+            .collect()
+    }
+
+    /// Gets the parent properties from its index.
+    pub fn parent_from_index(&self, parent_id: ParentIndex) -> &Parent {
+        &self.parents[parent_id]
+    }
+
+    /// Gets a mutable reference to a vertex from its index.
+    pub fn vertex_mut_from_index(&mut self, vertex_id: VertexIndex) -> &mut Point2<f64> {
+        &mut self.vertices[vertex_id]
+    }
+
+    /// Gets a mutable reference to the parent properties from its index.
+    pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
+        &mut self.parents[parent_id]
+    }
+
+    /// Gets a mutable reference to an element of he_to_vertex.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn he_to_vertex_mut(&mut self, he_id: HalfEdgeIndex) -> &mut VertexIndex {
+        &mut self.he_to_vertex[he_id]
+    }
+
+    /// Gets a mutable reference to an element of he_to_twin.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn he_to_twin_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
+        &mut self.he_to_twin[he_id]
+    }
+
+    /// Gets a mutable reference to an element of he_to_next_he.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn he_to_next_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
+        &mut self.he_to_next_he[he_id]
+    }
+
+    /// Gets a mutable reference to an element of he_to_prev_he.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn he_to_prev_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
+        &mut self.he_to_prev_he[he_id]
+    }
+
+    /// Gets a mutable reference to an element of he_to_parent.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn he_to_parent_mut(&mut self, he_id: HalfEdgeIndex) -> &mut ParentIndex {
+        &mut self.he_to_parent[he_id]
+    }
+
+    /// Gets a mutable reference to an element of parent_to_first_he.
+    ///
+    /// # Safety
+    ///
+    /// You need to ensure that the data structure remains correct, this function is at a base level.
+    pub unsafe fn parent_to_first_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
+        &mut self.parent_to_first_he[he_id]
+    }
+    
+    /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
+    pub fn split_edge(&mut self, he_id: HalfEdgeIndex, distance_ratio: f64) -> Result<(), MeshError>{
+        if (distance_ratio >= 1.0) | (distance_ratio <= 0.0) {
+            return Err(MeshError::WrongFloatValue { got: distance_ratio, expected: (0.0, 1.0) });
+        }
+        
+        let new_vertex_id = VertexIndex(self.vertices.len());
+        let new_vertex_pos: Point2<f64> = {
+            let edge_vertices = self.vertices_from_he(he_id);
+            let edge_vertices = (self.vertices[edge_vertices[0]], self.vertices[edge_vertices[1]]);
+            edge_vertices.0.lerp(&edge_vertices.1, distance_ratio)
+        };
+        
+        self.vertices.push(new_vertex_pos);
+        
+        let new_he_id = HalfEdgeIndex(self.he_to_twin.len());
+        
+        todo!();
+        
+        Ok(())
     }
     
 }
