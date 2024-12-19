@@ -3,10 +3,5 @@
 //!
 //! For now only functionnalities to construct an advancing front algorithm are being created.
 
-pub use error::*;
-pub use indices::*;
-pub use mesh::*;
-
-pub mod error;
-pub mod indices;
 pub mod mesh;
+pub mod boundary;
