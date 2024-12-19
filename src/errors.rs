@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Clone, Debug, Default, Error)]
+#[derive(Clone, Debug, Default, Error, PartialEq)]
 pub enum MeshError {
     #[default]
     #[error(
