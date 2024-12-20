@@ -116,60 +116,6 @@ impl Mutable2DMesh {
     pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
         &mut self.parents[parent_id]
     }
-
-    /// Gets a mutable reference to an element of he_to_vertex.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn he_to_vertex_mut(&mut self, he_id: HalfEdgeIndex) -> &mut VertexIndex {
-        &mut self.he_to_vertex[he_id]
-    }
-
-    /// Gets a mutable reference to an element of he_to_twin.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn he_to_twin_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
-        &mut self.he_to_twin[he_id]
-    }
-
-    /// Gets a mutable reference to an element of he_to_next_he.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn he_to_next_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
-        &mut self.he_to_next_he[he_id]
-    }
-
-    /// Gets a mutable reference to an element of he_to_prev_he.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn he_to_prev_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
-        &mut self.he_to_prev_he[he_id]
-    }
-
-    /// Gets a mutable reference to an element of he_to_parent.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn he_to_parent_mut(&mut self, he_id: HalfEdgeIndex) -> &mut ParentIndex {
-        &mut self.he_to_parent[he_id]
-    }
-
-    /// Gets a mutable reference to an element of parent_to_first_he.
-    ///
-    /// # Safety
-    ///
-    /// You need to ensure that the data structure remains correct, this function is at a base level.
-    pub unsafe fn parent_to_first_he_mut(&mut self, he_id: HalfEdgeIndex) -> &mut HalfEdgeIndex {
-        &mut self.parent_to_first_he[he_id]
-    }
     
     /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
     pub fn split_edge(&mut self, he_id: HalfEdgeIndex, distance_ratio: f64) -> Result<(), MeshError>{
@@ -184,11 +130,32 @@ impl Mutable2DMesh {
             edge_vertices.0.lerp(&edge_vertices.1, distance_ratio)
         };
         
+        let he_ids = (he_id, self.twin_from_he(he_id));
+        
         self.vertices.push(new_vertex_pos);
         
-        let new_he_id = HalfEdgeIndex(self.he_to_twin.len());
+        let new_he_ids = (HalfEdgeIndex(self.he_to_twin.len()), HalfEdgeIndex(self.he_to_twin.len() + 1));
         
-        todo!();
+        self.he_to_vertex.push(new_vertex_id);
+        self.he_to_vertex.push(new_vertex_id);
+        
+        self.he_to_twin.push(he_ids.1);
+        self.he_to_twin.push(he_ids.0);
+        self.he_to_twin[he_ids.0] = new_he_ids.1;
+        self.he_to_twin[he_ids.1] = new_he_ids.0;
+        
+        let next = self.next_he_from_he(he_ids.0);
+        self.he_to_next_he[he_ids.0] = new_he_ids.0;
+        self.he_to_next_he.push(next);
+        let next = self.next_he_from_he(he_ids.1);
+        self.he_to_next_he[he_ids.1] = new_he_ids.1;
+        self.he_to_next_he.push(next);
+        
+        self.he_to_prev_he.push(he_ids.0);
+        self.he_to_prev_he.push(he_ids.1);
+        
+        self.he_to_parent.push(self.parent_from_he(he_ids.0));
+        self.he_to_parent.push(self.parent_from_he(he_ids.1));
         
         Ok(())
     }
