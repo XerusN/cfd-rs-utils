@@ -1,6 +1,6 @@
 use crate::{boundary::Boundary, errors::MeshError};
 use indices::*;
-use nalgebra::{distance, Point2};
+use nalgebra::Point2;
 
 pub mod indices;
 
@@ -116,48 +116,60 @@ impl Mutable2DMesh {
     pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
         &mut self.parents[parent_id]
     }
-    
+
     /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
-    pub fn split_edge(&mut self, he_id: HalfEdgeIndex, distance_ratio: f64) -> Result<(), MeshError>{
+    pub fn split_edge(
+        &mut self,
+        he_id: HalfEdgeIndex,
+        distance_ratio: f64,
+    ) -> Result<(), MeshError> {
         if (distance_ratio >= 1.0) | (distance_ratio <= 0.0) {
-            return Err(MeshError::WrongFloatValue { got: distance_ratio, expected: (0.0, 1.0) });
+            return Err(MeshError::WrongFloatValue {
+                got: distance_ratio,
+                expected: (0.0, 1.0),
+            });
         }
-        
+
         let new_vertex_id = VertexIndex(self.vertices.len());
         let new_vertex_pos: Point2<f64> = {
             let edge_vertices = self.vertices_from_he(he_id);
-            let edge_vertices = (self.vertices[edge_vertices[0]], self.vertices[edge_vertices[1]]);
+            let edge_vertices = (
+                self.vertices[edge_vertices[0]],
+                self.vertices[edge_vertices[1]],
+            );
             edge_vertices.0.lerp(&edge_vertices.1, distance_ratio)
         };
-        
+
         let he_ids = (he_id, self.twin_from_he(he_id));
-        
+
         self.vertices.push(new_vertex_pos);
-        
-        let new_he_ids = (HalfEdgeIndex(self.he_to_twin.len()), HalfEdgeIndex(self.he_to_twin.len() + 1));
-        
+
+        let new_he_ids = (
+            HalfEdgeIndex(self.he_to_twin.len()),
+            HalfEdgeIndex(self.he_to_twin.len() + 1),
+        );
+
         self.he_to_vertex.push(new_vertex_id);
         self.he_to_vertex.push(new_vertex_id);
-        
+
         self.he_to_twin.push(he_ids.1);
         self.he_to_twin.push(he_ids.0);
         self.he_to_twin[he_ids.0] = new_he_ids.1;
         self.he_to_twin[he_ids.1] = new_he_ids.0;
-        
+
         let next = self.next_he_from_he(he_ids.0);
         self.he_to_next_he[he_ids.0] = new_he_ids.0;
         self.he_to_next_he.push(next);
         let next = self.next_he_from_he(he_ids.1);
         self.he_to_next_he[he_ids.1] = new_he_ids.1;
         self.he_to_next_he.push(next);
-        
+
         self.he_to_prev_he.push(he_ids.0);
         self.he_to_prev_he.push(he_ids.1);
-        
+
         self.he_to_parent.push(self.parent_from_he(he_ids.0));
         self.he_to_parent.push(self.parent_from_he(he_ids.1));
-        
+
         Ok(())
     }
-    
 }
