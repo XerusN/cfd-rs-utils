@@ -34,11 +34,21 @@ pub struct Mutable2DMesh {
 
 impl Mutable2DMesh {
     /// Creates a mesh with only boundaries defined.
+    /// The 
     pub fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
-        he_to_vertex: Vec<VertexIndex>,
+        edge_to_vertices: Vec<(VertexIndex, VertexIndex)>,
         parents: Vec<Parent>,
     ) -> Self {
+        
+        let he_to_twin = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
+        let he_to_next_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
+        let he_to_prev_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
+        let he_to_parent = Vec::<ParentIndex>::with_capacity(edge_to_vertices.len()*2);
+        
+        let parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len());
+        
+        
         // All arrays are needed to be built correctly
         todo!()
     }
