@@ -10,7 +10,7 @@ pub mod indices;
 pub enum Parent {
     #[default]
     None,
-    Cell(u32),
+    Cell(usize),
     Boundary(Boundary),
 }
 
@@ -34,23 +34,91 @@ pub struct Mutable2DMesh {
 
 impl Mutable2DMesh {
     /// Creates a mesh with only boundaries defined.
-    /// The 
+    /// Expects the edges to be sorted (the next edge is starting with the same vertex as the last from the previous edge)
+    /// Parents designates the parent at the right side from an edge
+    /// 
+    /// Failing to comply with those invariants might result in unexpected behaviours.
+    /// This function is done in a simple version for testing purpose, but will be changed in the future.
+    /// If you have any suggestion, do not hesitate to reach out, send an issue or provide a fix.
     pub fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
-        edge_to_vertices: Vec<(VertexIndex, VertexIndex)>,
-        parents: Vec<Parent>,
+        edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
+        mut parents: Vec<Parent>,
     ) -> Self {
+        let mut he_to_vertex = Vec::<VertexIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
+        let mut he_to_twin = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
+        let mut he_to_next_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
+        let mut he_to_prev_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
+        let mut he_to_parent = Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
         
-        let he_to_twin = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
-        let he_to_next_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
-        let he_to_prev_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices.len()*2);
-        let he_to_parent = Vec::<ParentIndex>::with_capacity(edge_to_vertices.len()*2);
-        
-        let parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len());
-        
+        let mut parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len() + 1);
         
         // All arrays are needed to be built correctly
-        todo!()
+        
+        let cell = ParentIndex(parents.len());
+        parents.push(Parent::Cell(0));
+        
+        let mut prev_he_1 = HalfEdgeIndex::default();
+        let mut prev_he_2 = HalfEdgeIndex::default();
+        
+        for (i, edge) in edge_to_vertices_and_parent.iter().enumerate() {
+            let new_he_1 = HalfEdgeIndex(he_to_vertex.len());
+            let new_he_2 = HalfEdgeIndex(he_to_vertex.len() + 1);
+            he_to_vertex.push(edge.0);
+            he_to_vertex.push(edge.1);
+            he_to_twin.push(new_he_2);
+            he_to_twin.push(new_he_1);
+            
+            he_to_parent.push(cell);
+            he_to_parent.push(edge.2);
+            
+            he_to_next_he.push(HalfEdgeIndex(0));
+            he_to_next_he.push(HalfEdgeIndex(0));
+            he_to_prev_he.push(HalfEdgeIndex(0));
+            he_to_prev_he.push(HalfEdgeIndex(0));
+            
+            if i == 0 {
+                continue;
+            }
+            
+            he_to_next_he[new_he_2] = prev_he_2;
+            he_to_prev_he[new_he_1] = prev_he_1;
+            
+            he_to_next_he[prev_he_1] = new_he_1;
+            he_to_prev_he[prev_he_2] = new_he_2;
+            
+            prev_he_1 = new_he_1;
+            prev_he_2 = new_he_2;
+        }
+        
+        he_to_next_he[HalfEdgeIndex(1)] = prev_he_1;
+        he_to_prev_he[HalfEdgeIndex(0)] = prev_he_2;
+        
+        he_to_next_he[prev_he_1] = HalfEdgeIndex(0);
+        he_to_prev_he[prev_he_2] = HalfEdgeIndex(1);
+        
+        for i in 0..parents.len() {
+            let current_id = ParentIndex(i);
+            for (j, he_parent) in he_to_parent.iter().enumerate() {
+                if current_id == *he_parent {
+                    parent_to_first_he.push(HalfEdgeIndex(j));
+                    break;
+                }
+            }
+        }
+        
+        Mutable2DMesh {
+            vertices,
+            
+            he_to_vertex,
+            he_to_twin,
+            he_to_next_he,
+            he_to_prev_he,
+            he_to_parent,
+            
+            parents,
+            parent_to_first_he,
+        }
     }
 
     /// Gets all the vertices of an half-edge.
