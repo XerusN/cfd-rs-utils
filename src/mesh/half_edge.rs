@@ -40,7 +40,11 @@ impl Mutable2DMesh {
     /// Failing to comply with those invariants might result in unexpected behaviours.
     /// This function is done in a simple version for testing purpose, but will be changed in the future.
     /// If you have any suggestion, do not hesitate to reach out, send an issue or provide a fix.
-    pub fn new_from_boundary(
+    /// 
+    /// # Safety
+    /// 
+    /// The function is marked as unsafe to warn about the very unstable API and the very specific input needed.
+    pub unsafe fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
         edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
         mut parents: Vec<Parent>,
