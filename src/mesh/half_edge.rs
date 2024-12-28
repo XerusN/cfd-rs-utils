@@ -3,6 +3,8 @@ use indices::*;
 use nalgebra::Point2;
 
 pub mod indices;
+
+#[cfg(test)]
 mod test;
 
 /// Parent of a half_edge, either a cell or a boundary.
@@ -37,35 +39,42 @@ impl Mutable2DMesh {
     /// Creates a mesh with only boundaries defined.
     /// Expects the edges to be sorted (the next edge is starting with the same vertex as the last from the previous edge)
     /// Parents designates the parent at the right side from an edge
-    /// 
+    ///
     /// Failing to comply with those invariants might result in unexpected behaviours.
     /// This function is done in a simple version for testing purpose, but will be changed in the future.
     /// If you have any suggestion, do not hesitate to reach out, send an issue or provide a fix.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// The function is marked as unsafe to warn about the very unstable API and the very specific input needed.
     pub unsafe fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
         edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
-        mut parents: Vec<Parent>,
+        parents: Vec<Parent>,
     ) -> Self {
-        let mut he_to_vertex = Vec::<VertexIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
-        let mut he_to_twin = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
-        let mut he_to_next_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
-        let mut he_to_prev_he = Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
-        let mut he_to_parent = Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len()*2);
-        
+        let mut parents = parents;
+
+        let mut he_to_vertex =
+            Vec::<VertexIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_twin =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_next_he =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_prev_he =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_parent =
+            Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+
         let mut parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len() + 1);
-        
+
         // All arrays are needed to be built correctly
-        
+
         let cell = ParentIndex(parents.len());
         parents.push(Parent::Cell(0));
-        
-        let mut prev_he_1 = HalfEdgeIndex::default();
-        let mut prev_he_2 = HalfEdgeIndex::default();
-        
+
+        let mut prev_he_1 = HalfEdgeIndex(0);
+        let mut prev_he_2 = HalfEdgeIndex(0);
+
         for (i, edge) in edge_to_vertices_and_parent.iter().enumerate() {
             let new_he_1 = HalfEdgeIndex(he_to_vertex.len());
             let new_he_2 = HalfEdgeIndex(he_to_vertex.len() + 1);
@@ -73,35 +82,37 @@ impl Mutable2DMesh {
             he_to_vertex.push(edge.1);
             he_to_twin.push(new_he_2);
             he_to_twin.push(new_he_1);
-            
+
             he_to_parent.push(cell);
             he_to_parent.push(edge.2);
-            
+
             he_to_next_he.push(HalfEdgeIndex(0));
             he_to_next_he.push(HalfEdgeIndex(0));
             he_to_prev_he.push(HalfEdgeIndex(0));
             he_to_prev_he.push(HalfEdgeIndex(0));
-            
+
             if i == 0 {
+                prev_he_1 = new_he_1;
+                prev_he_2 = new_he_2;
                 continue;
             }
-            
+
             he_to_next_he[new_he_2] = prev_he_2;
             he_to_prev_he[new_he_1] = prev_he_1;
-            
+
             he_to_next_he[prev_he_1] = new_he_1;
             he_to_prev_he[prev_he_2] = new_he_2;
-            
+
             prev_he_1 = new_he_1;
             prev_he_2 = new_he_2;
         }
-        
-        he_to_next_he[HalfEdgeIndex(1)] = prev_he_1;
-        he_to_prev_he[HalfEdgeIndex(0)] = prev_he_2;
-        
+
+        he_to_next_he[HalfEdgeIndex(1)] = prev_he_2;
+        he_to_prev_he[HalfEdgeIndex(0)] = prev_he_1;
+
         he_to_next_he[prev_he_1] = HalfEdgeIndex(0);
         he_to_prev_he[prev_he_2] = HalfEdgeIndex(1);
-        
+
         for i in 0..parents.len() {
             let current_id = ParentIndex(i);
             for (j, he_parent) in he_to_parent.iter().enumerate() {
@@ -111,16 +122,16 @@ impl Mutable2DMesh {
                 }
             }
         }
-        
+
         Mutable2DMesh {
             vertices,
-            
+
             he_to_vertex,
             he_to_twin,
             he_to_next_he,
             he_to_prev_he,
             he_to_parent,
-            
+
             parents,
             parent_to_first_he,
         }
@@ -141,6 +152,7 @@ impl Mutable2DMesh {
         let mut current_he = self.he_to_next_he[first_he];
 
         while first_he != current_he {
+            //println!("{:?}, {:?}", current_he, first_he);
             result.push(current_he);
             current_he = self.he_to_next_he[current_he];
         }
@@ -199,7 +211,24 @@ impl Mutable2DMesh {
     pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
         &mut self.parents[parent_id]
     }
-
+    
+    /// Check that the mesh topology is valid.
+    /// Used to confirm the topology before switching to an immutable mesh and for test purpose.
+    fn check_mesh(&self) -> Result<(), MeshError> {
+        
+        //Checks length coherence between HalfEdges arrays
+        assert_eq!(self.he_to_next_he.len(), self.he_to_twin.len());
+        assert_eq!(self.he_to_prev_he.len(), self.he_to_twin.len());
+        assert_eq!(self.he_to_vertex.len(), self.he_to_twin.len());
+        assert_eq!(self.he_to_parent.len(), self.he_to_twin.len());
+        
+        todo!();
+        
+        
+        Ok(())        
+    }
+    
+    
     /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
     pub fn split_edge(
         &mut self,

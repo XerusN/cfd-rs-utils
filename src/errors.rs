@@ -8,5 +8,5 @@ pub enum MeshError {
     )]
     Unspecified,
     #[error("Value not in the right range (expected in {expected:?}, got {got:?}")]
-    WrongFloatValue{got: f64, expected: (f64, f64)}
+    WrongFloatValue { got: f64, expected: (f64, f64) },
 }
