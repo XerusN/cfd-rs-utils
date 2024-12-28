@@ -3,6 +3,7 @@ use indices::*;
 use nalgebra::Point2;
 
 pub mod indices;
+mod test;
 
 /// Parent of a half_edge, either a cell or a boundary.
 /// ```None``` is meant as an error or temporary state.
