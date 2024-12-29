@@ -47,10 +47,4 @@ fn split_edge_test_1() {
     mesh.split_edge(HalfEdgeIndex(2), 0.2).unwrap();
     
     mesh.check_mesh().unwrap();
-
-    // assert_eq!(mesh.parents.len(), 2);
-    // assert_eq!(
-    //     mesh.he_from_parent(ParentIndex(0)).len(),
-    //     mesh.he_from_parent(ParentIndex(1)).len()
-    // );
 }
