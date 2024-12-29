@@ -211,36 +211,119 @@ impl Mutable2DMesh {
     pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
         &mut self.parents[parent_id]
     }
-    
+
     /// Check that the mesh topology is valid.
     /// Used to confirm the topology before switching to an immutable mesh and for test purpose.
+    ///
+    /// This function aims to be exhaustive but obviously it is not.
+    /// For now it mostly checks coherence between arrays and that not indices are out of bound.
+    ///
+    /// If you find some cases not covered by this function, don't hesitate to submit a pull request or detail what you would like implemented.
     fn check_mesh(&self) -> Result<(), MeshError> {
-        
         //Checks length coherence between HalfEdges arrays
         assert_eq!(self.he_to_next_he.len(), self.he_to_twin.len());
         assert_eq!(self.he_to_prev_he.len(), self.he_to_twin.len());
         assert_eq!(self.he_to_vertex.len(), self.he_to_twin.len());
         assert_eq!(self.he_to_parent.len(), self.he_to_twin.len());
-        
+
         for vertex in &self.he_to_vertex {
             if *vertex >= VertexIndex(self.vertices.len()) {
-                return Err(MeshError::VertexIndexOutOfBound { got: *vertex, len: self.vertices.len() })
+                return Err(MeshError::VertexIndexOutOfBound {
+                    got: *vertex,
+                    len: self.vertices.len(),
+                });
             }
         }
-        
+
         for he in &self.he_to_twin {
             if *he >= HalfEdgeIndex(self.he_to_vertex.len()) {
-                return Err(MeshError::HalfEdgeIndexOutOfBound { got: *he, len: self.he_to_vertex.len() })
+                return Err(MeshError::HalfEdgeIndexOutOfBound {
+                    got: *he,
+                    len: self.he_to_vertex.len(),
+                });
             }
         }
-        
-        todo!();
-        
-        
-        Ok(())        
+
+        for (i, he) in self.he_to_twin.iter().enumerate() {
+            if self.he_to_twin[*he] != HalfEdgeIndex(i) {
+                return Err(MeshError::TwinNotCorrect {
+                    he: HalfEdgeIndex(i),
+                    he_twin: *he,
+                    he_twin_twin: self.he_to_twin[*he],
+                });
+            }
+        }
+
+        for he in &self.he_to_next_he {
+            if *he >= HalfEdgeIndex(self.he_to_vertex.len()) {
+                return Err(MeshError::HalfEdgeIndexOutOfBound {
+                    got: *he,
+                    len: self.he_to_vertex.len(),
+                });
+            }
+        }
+
+        for he in &self.he_to_prev_he {
+            if *he >= HalfEdgeIndex(self.he_to_vertex.len()) {
+                return Err(MeshError::HalfEdgeIndexOutOfBound {
+                    got: *he,
+                    len: self.he_to_vertex.len(),
+                });
+            }
+        }
+
+        // Simple check from prev and next
+        for (i, next) in self.he_to_next_he.iter().enumerate() {
+            let he = HalfEdgeIndex(i);
+            if he != self.he_to_prev_he[*next] {
+                return Err(MeshError::NextPrevNotCorrect {
+                    he,
+                    he_next: *next,
+                    he_next_prev: self.he_to_prev_he[*next],
+                });
+            }
+        }
+
+        // Might be redundant with the previous check
+        for i in 0..self.he_to_vertex.len() {
+            let origin = HalfEdgeIndex(i);
+            let mut j = 0;
+            let mut current_he = self.he_to_next_he[origin];
+            while current_he != origin {
+                current_he = self.he_to_next_he[current_he];
+                j += 1;
+                // len/2 could work
+                if j >= self.he_to_vertex.len() {
+                    break;
+                }
+            }
+        }
+
+        for parent in &self.he_to_parent {
+            if *parent >= ParentIndex(self.parents.len()) {
+                return Err(MeshError::ParentIndexOutOfBound {
+                    got: *parent,
+                    len: self.parents.len(),
+                });
+            }
+        }
+
+        for i in 0..self.parents.len() {
+            let parent = ParentIndex(i);
+            for he in self.he_from_parent(parent) {
+                if self.parent_from_he(he) != parent {
+                    return Err(MeshError::ParentNotCorrect {
+                        parent,
+                        he,
+                        he_parent: self.parent_from_he(he),
+                    });
+                }
+            }
+        }
+
+        Ok(())
     }
-    
-    
+
     /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
     pub fn split_edge(
         &mut self,

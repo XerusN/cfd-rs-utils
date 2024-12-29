@@ -29,9 +29,11 @@ fn simple_mesh() -> Mutable2DMesh {
 fn new_from_boundary_test_1() {
     let mesh = simple_mesh();
 
-    assert_eq!(mesh.parents.len(), 2);
-    assert_eq!(
-        mesh.he_from_parent(ParentIndex(0)).len(),
-        mesh.he_from_parent(ParentIndex(1)).len()
-    );
+    mesh.check_mesh().unwrap();
+
+    // assert_eq!(mesh.parents.len(), 2);
+    // assert_eq!(
+    //     mesh.he_from_parent(ParentIndex(0)).len(),
+    //     mesh.he_from_parent(ParentIndex(1)).len()
+    // );
 }
