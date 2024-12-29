@@ -222,6 +222,18 @@ impl Mutable2DMesh {
         assert_eq!(self.he_to_vertex.len(), self.he_to_twin.len());
         assert_eq!(self.he_to_parent.len(), self.he_to_twin.len());
         
+        for vertex in &self.he_to_vertex {
+            if *vertex >= VertexIndex(self.vertices.len()) {
+                return Err(MeshError::VertexIndexOutOfBound { got: *vertex, len: self.he_to_vertex.len() })
+            }
+        }
+        
+        for he in &self.he_to_twin {
+            if *he >= HalfEdgeIndex(self.he_to_vertex.len()) {
+                return Err(MeshError::HalfEdgeIndexOutOfBound { got: *he, len: self.he_to_vertex.len() })
+            }
+        }
+        
         todo!();
         
         
