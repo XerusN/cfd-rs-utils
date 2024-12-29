@@ -37,3 +37,20 @@ fn new_from_boundary_test_1() {
     //     mesh.he_from_parent(ParentIndex(1)).len()
     // );
 }
+
+#[test]
+fn split_edge_test_1() {
+    let mut mesh = simple_mesh();
+    
+    mesh.split_edge(HalfEdgeIndex(1), 0.5).unwrap();
+    
+    mesh.split_edge(HalfEdgeIndex(2), 0.2).unwrap();
+    
+    mesh.check_mesh().unwrap();
+
+    // assert_eq!(mesh.parents.len(), 2);
+    // assert_eq!(
+    //     mesh.he_from_parent(ParentIndex(0)).len(),
+    //     mesh.he_from_parent(ParentIndex(1)).len()
+    // );
+}

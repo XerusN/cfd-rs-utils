@@ -367,9 +367,11 @@ impl Mutable2DMesh {
         let next = self.next_he_from_he(he_ids.0);
         self.he_to_next_he[he_ids.0] = new_he_ids.0;
         self.he_to_next_he.push(next);
+        self.he_to_prev_he[next] = new_he_ids.0;
         let next = self.next_he_from_he(he_ids.1);
         self.he_to_next_he[he_ids.1] = new_he_ids.1;
         self.he_to_next_he.push(next);
+        self.he_to_prev_he[next] = new_he_ids.1;
 
         self.he_to_prev_he.push(he_ids.0);
         self.he_to_prev_he.push(he_ids.1);
