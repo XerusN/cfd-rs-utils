@@ -1,0 +1,44 @@
+use thiserror::Error;
+
+use crate::mesh::indices::*;
+
+#[derive(Clone, Debug, Default, Error, PartialEq)]
+pub enum MeshError {
+    #[default]
+    #[error(
+        "An Unspecified error happened, you can blame the crate developer for the lack of details"
+    )]
+    Unspecified,
+    #[error("Value not in the right range (expected in {expected:?}, got {got:?}")]
+    WrongFloatValue { got: f64, expected: (f64, f64) },
+    #[error("An HalfEdgeIndex is out of bound in array (got {got:?}, there are only {len:?} half-edges)")]
+    HalfEdgeIndexOutOfBound { got: HalfEdgeIndex, len: usize },
+    #[error(
+        "An VertexIndex is out of bound in array (got {got:?}, there are only {len:?} vertices)"
+    )]
+    VertexIndexOutOfBound { got: VertexIndex, len: usize },
+    #[error(
+        "An ParentIndex is out of bound in array (got {got:?}, there are only {len:?} parents)"
+    )]
+    ParentIndexOutOfBound { got: ParentIndex, len: usize },
+    #[error("Twins are badly set (origin : {he:?}, twin : {he_twin:?} and twin from twin : {he_twin_twin:?})")]
+    TwinNotCorrect {
+        he: HalfEdgeIndex,
+        he_twin: HalfEdgeIndex,
+        he_twin_twin: HalfEdgeIndex,
+    },
+    #[error("Links between parents and half-edges are badly set (origin : {parent:?}, half-edge : {he:?} and parent from half_edge : {he_parent:?})")]
+    ParentNotCorrect {
+        parent: ParentIndex,
+        he: HalfEdgeIndex,
+        he_parent: ParentIndex,
+    },
+    #[error("No cycle when starting from half-edge (origin : {he:?})")]
+    WrongHalfEdgeLoop { he: HalfEdgeIndex },
+    #[error("Wrong definition of next or previous half-edge (origin : {he:?}, next : {he_next:?} and prev from next : {he_next_prev:?})")]
+    NextPrevNotCorrect {
+        he: HalfEdgeIndex,
+        he_next: HalfEdgeIndex,
+        he_next_prev: HalfEdgeIndex,
+    },
+}
