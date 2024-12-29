@@ -17,8 +17,6 @@ pub enum Parent {
     Boundary(Boundary),
 }
 
-
-
 /// Array based Half-edge data-structure mesh representation
 /// Supports meshes of up to a billion element.
 /// Since the crate is built for cfd on a classic computer (not HPC) it is easily enough.
@@ -45,17 +43,17 @@ impl Base2DMesh {
             self.he_to_vertex[self.he_to_twin[he_id]],
         ]
     }
-    
+
     /// Returns the number of vertices.
     pub fn vertices_len(&self) -> usize {
         self.vertices.len()
     }
-    
+
     /// Returns the number of half-edges.
     pub fn he_len(&self) -> usize {
         self.he_to_vertex.len()
     }
-    
+
     /// Returns the number of parents.
     pub fn parents_len(&self) -> usize {
         self.parents.len()
@@ -117,7 +115,7 @@ impl Base2DMesh {
     pub fn parent_from_index(&self, parent_id: ParentIndex) -> &Parent {
         &self.parents[parent_id]
     }
-    
+
     /// Check that the mesh topology is valid.
     /// Used to confirm the topology before switching to an immutable mesh and for test purpose.
     ///
@@ -326,7 +324,7 @@ impl Modifiable2DMesh {
                 }
             }
         }
-        
+
         Modifiable2DMesh(Base2DMesh {
             vertices,
 

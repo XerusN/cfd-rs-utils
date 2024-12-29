@@ -35,10 +35,10 @@ fn new_from_boundary_test_1() {
 #[test]
 fn split_edge_test_1() {
     let mut mesh = simple_mesh();
-    
+
     mesh.split_edge(HalfEdgeIndex(1), 0.5).unwrap();
-    
+
     mesh.split_edge(HalfEdgeIndex(2), 0.2).unwrap();
-    
+
     mesh.0.check_mesh().unwrap();
 }
