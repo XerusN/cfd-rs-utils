@@ -44,5 +44,8 @@ pub enum MeshError {
     #[error("The object already exists")]
     AlreadyExists,
     #[error("The vertices is not contained in parent (vertex : {vertex:?}, parent : {parent:?})")]
-    ParentDoesNotContainVertex{vertex: VertexIndex, parent: ParentIndex},
+    ParentDoesNotContainVertex {
+        vertex: VertexIndex,
+        parent: ParentIndex,
+    },
 }

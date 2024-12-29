@@ -42,3 +42,13 @@ fn split_edge_test_1() {
 
     mesh.0.check_mesh().unwrap();
 }
+
+#[test]
+fn add_edge_between_vertices_test_1() {
+    let mut mesh = simple_mesh();
+
+    mesh.add_edge_between_vertices((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
+        .unwrap();
+
+    mesh.0.check_mesh().unwrap();
+}
