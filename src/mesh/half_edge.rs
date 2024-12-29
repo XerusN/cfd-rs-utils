@@ -498,9 +498,17 @@ impl Modifiable2DMesh {
         self.0.he_to_prev_he[he_from_vertex_with_parent] = HalfEdgeIndex(new_he);
 
         let mut current_he = he_from_vertex_with_parent;
+        let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.1 {
             self.0.he_to_parent[current_he] = ParentIndex(new_cell);
             current_he = self.0.he_to_next_he[current_he];
+            i += 1;
+            if i >= self.0.he_len() {
+                return Err(MeshError::ParentDoesNotContainVertex {
+                    vertex: vertices.1,
+                    parent,
+                });
+            }
         }
 
         self.0.he_to_prev_he[HalfEdgeIndex(new_he)] = self.0.he_to_prev_he[current_he];
