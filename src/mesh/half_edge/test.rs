@@ -1,6 +1,6 @@
 use super::*;
 
-fn simple_mesh() -> Mutable2DMesh {
+fn simple_mesh() -> Modifiable2DMesh {
     let parents = vec![Parent::Boundary(Boundary::NoSlip)];
     let vertices = vec![
         Point2::new(0.0, 0.0),
@@ -19,7 +19,7 @@ fn simple_mesh() -> Mutable2DMesh {
     let mesh;
 
     unsafe {
-        mesh = Mutable2DMesh::new_from_boundary(vertices, edge_to_vertices_and_parent, parents);
+        mesh = Modifiable2DMesh::new_from_boundary(vertices, edge_to_vertices_and_parent, parents);
     }
 
     mesh
@@ -29,7 +29,7 @@ fn simple_mesh() -> Mutable2DMesh {
 fn new_from_boundary_test_1() {
     let mesh = simple_mesh();
 
-    mesh.check_mesh().unwrap();
+    mesh.0.check_mesh().unwrap();
 }
 
 #[test]
@@ -40,5 +40,5 @@ fn split_edge_test_1() {
     
     mesh.split_edge(HalfEdgeIndex(2), 0.2).unwrap();
     
-    mesh.check_mesh().unwrap();
+    mesh.0.check_mesh().unwrap();
 }

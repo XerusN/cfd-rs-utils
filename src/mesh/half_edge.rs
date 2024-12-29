@@ -17,11 +17,13 @@ pub enum Parent {
     Boundary(Boundary),
 }
 
+
+
 /// Array based Half-edge data-structure mesh representation
 /// Supports meshes of up to a billion element.
 /// Since the crate is built for cfd on a classic computer (not HPC) it is easily enough.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Mutable2DMesh {
+pub struct Base2DMesh {
     //```he``` is for Half-edge
     he_to_vertex: Vec<VertexIndex>,
     he_to_twin: Vec<HalfEdgeIndex>,
@@ -35,108 +37,7 @@ pub struct Mutable2DMesh {
     parent_to_first_he: Vec<HalfEdgeIndex>,
 }
 
-impl Mutable2DMesh {
-    /// Creates a mesh with only boundaries defined.
-    /// Expects the edges to be sorted (the next edge is starting with the same vertex as the last from the previous edge)
-    /// Parents designates the parent at the right side from an edge
-    ///
-    /// Failing to comply with those invariants might result in unexpected behaviours.
-    /// This function is done in a simple version for testing purpose, but will be changed in the future.
-    /// If you have any suggestion, do not hesitate to reach out, send an issue or provide a fix.
-    ///
-    /// # Safety
-    ///
-    /// The function is marked as unsafe to warn about the very unstable API and the very specific input needed.
-    pub unsafe fn new_from_boundary(
-        vertices: Vec<Point2<f64>>,
-        edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
-        parents: Vec<Parent>,
-    ) -> Self {
-        let mut parents = parents;
-
-        let mut he_to_vertex =
-            Vec::<VertexIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-        let mut he_to_twin =
-            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-        let mut he_to_next_he =
-            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-        let mut he_to_prev_he =
-            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-        let mut he_to_parent =
-            Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-
-        let mut parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len() + 1);
-
-        // All arrays are needed to be built correctly
-
-        let cell = ParentIndex(parents.len());
-        parents.push(Parent::Cell(0));
-
-        let mut prev_he_1 = HalfEdgeIndex(0);
-        let mut prev_he_2 = HalfEdgeIndex(0);
-
-        for (i, edge) in edge_to_vertices_and_parent.iter().enumerate() {
-            let new_he_1 = HalfEdgeIndex(he_to_vertex.len());
-            let new_he_2 = HalfEdgeIndex(he_to_vertex.len() + 1);
-            he_to_vertex.push(edge.0);
-            he_to_vertex.push(edge.1);
-            he_to_twin.push(new_he_2);
-            he_to_twin.push(new_he_1);
-
-            he_to_parent.push(cell);
-            he_to_parent.push(edge.2);
-
-            he_to_next_he.push(HalfEdgeIndex(0));
-            he_to_next_he.push(HalfEdgeIndex(0));
-            he_to_prev_he.push(HalfEdgeIndex(0));
-            he_to_prev_he.push(HalfEdgeIndex(0));
-
-            if i == 0 {
-                prev_he_1 = new_he_1;
-                prev_he_2 = new_he_2;
-                continue;
-            }
-
-            he_to_next_he[new_he_2] = prev_he_2;
-            he_to_prev_he[new_he_1] = prev_he_1;
-
-            he_to_next_he[prev_he_1] = new_he_1;
-            he_to_prev_he[prev_he_2] = new_he_2;
-
-            prev_he_1 = new_he_1;
-            prev_he_2 = new_he_2;
-        }
-
-        he_to_next_he[HalfEdgeIndex(1)] = prev_he_2;
-        he_to_prev_he[HalfEdgeIndex(0)] = prev_he_1;
-
-        he_to_next_he[prev_he_1] = HalfEdgeIndex(0);
-        he_to_prev_he[prev_he_2] = HalfEdgeIndex(1);
-
-        for i in 0..parents.len() {
-            let current_id = ParentIndex(i);
-            for (j, he_parent) in he_to_parent.iter().enumerate() {
-                if current_id == *he_parent {
-                    parent_to_first_he.push(HalfEdgeIndex(j));
-                    break;
-                }
-            }
-        }
-
-        Mutable2DMesh {
-            vertices,
-
-            he_to_vertex,
-            he_to_twin,
-            he_to_next_he,
-            he_to_prev_he,
-            he_to_parent,
-
-            parents,
-            parent_to_first_he,
-        }
-    }
-
+impl Base2DMesh {
     /// Gets all the vertices of an half-edge.
     pub fn vertices_from_he(&self, he_id: HalfEdgeIndex) -> [VertexIndex; 2] {
         [
@@ -201,17 +102,7 @@ impl Mutable2DMesh {
     pub fn parent_from_index(&self, parent_id: ParentIndex) -> &Parent {
         &self.parents[parent_id]
     }
-
-    /// Gets a mutable reference to a vertex from its index.
-    pub fn vertex_mut_from_index(&mut self, vertex_id: VertexIndex) -> &mut Point2<f64> {
-        &mut self.vertices[vertex_id]
-    }
-
-    /// Gets a mutable reference to the parent properties from its index.
-    pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
-        &mut self.parents[parent_id]
-    }
-
+    
     /// Check that the mesh topology is valid.
     /// Used to confirm the topology before switching to an immutable mesh and for test purpose.
     ///
@@ -323,6 +214,132 @@ impl Mutable2DMesh {
 
         Ok(())
     }
+}
+
+/// Gives access to modifications from Base2DMesh
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Modifiable2DMesh(pub Base2DMesh);
+
+/// Mesh with valid topology, can be safely used in computations
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Safe2DMesh(pub Base2DMesh);
+
+impl Modifiable2DMesh {
+    /// Creates a mesh with only boundaries defined.
+    /// Expects the edges to be sorted (the next edge is starting with the same vertex as the last from the previous edge)
+    /// Parents designates the parent at the right side from an edge
+    ///
+    /// Failing to comply with those invariants might result in unexpected behaviours.
+    /// This function is done in a simple version for testing purpose, but will be changed in the future.
+    /// If you have any suggestion, do not hesitate to reach out, send an issue or provide a fix.
+    ///
+    /// # Safety
+    ///
+    /// The function is marked as unsafe to warn about the very unstable API and the very specific input needed.
+    pub unsafe fn new_from_boundary(
+        vertices: Vec<Point2<f64>>,
+        edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
+        parents: Vec<Parent>,
+    ) -> Self {
+        let mut parents = parents;
+
+        let mut he_to_vertex =
+            Vec::<VertexIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_twin =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_next_he =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_prev_he =
+            Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_parent =
+            Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+
+        let mut parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len() + 1);
+
+        // All arrays are needed to be built correctly
+
+        let cell = ParentIndex(parents.len());
+        parents.push(Parent::Cell(0));
+
+        let mut prev_he_1 = HalfEdgeIndex(0);
+        let mut prev_he_2 = HalfEdgeIndex(0);
+
+        for (i, edge) in edge_to_vertices_and_parent.iter().enumerate() {
+            let new_he_1 = HalfEdgeIndex(he_to_vertex.len());
+            let new_he_2 = HalfEdgeIndex(he_to_vertex.len() + 1);
+            he_to_vertex.push(edge.0);
+            he_to_vertex.push(edge.1);
+            he_to_twin.push(new_he_2);
+            he_to_twin.push(new_he_1);
+
+            he_to_parent.push(cell);
+            he_to_parent.push(edge.2);
+
+            he_to_next_he.push(HalfEdgeIndex(0));
+            he_to_next_he.push(HalfEdgeIndex(0));
+            he_to_prev_he.push(HalfEdgeIndex(0));
+            he_to_prev_he.push(HalfEdgeIndex(0));
+
+            if i == 0 {
+                prev_he_1 = new_he_1;
+                prev_he_2 = new_he_2;
+                continue;
+            }
+
+            he_to_next_he[new_he_2] = prev_he_2;
+            he_to_prev_he[new_he_1] = prev_he_1;
+
+            he_to_next_he[prev_he_1] = new_he_1;
+            he_to_prev_he[prev_he_2] = new_he_2;
+
+            prev_he_1 = new_he_1;
+            prev_he_2 = new_he_2;
+        }
+
+        he_to_next_he[HalfEdgeIndex(1)] = prev_he_2;
+        he_to_prev_he[HalfEdgeIndex(0)] = prev_he_1;
+
+        he_to_next_he[prev_he_1] = HalfEdgeIndex(0);
+        he_to_prev_he[prev_he_2] = HalfEdgeIndex(1);
+
+        for i in 0..parents.len() {
+            let current_id = ParentIndex(i);
+            for (j, he_parent) in he_to_parent.iter().enumerate() {
+                if current_id == *he_parent {
+                    parent_to_first_he.push(HalfEdgeIndex(j));
+                    break;
+                }
+            }
+        }
+        
+        Modifiable2DMesh(Base2DMesh {
+            vertices,
+
+            he_to_vertex,
+            he_to_twin,
+            he_to_next_he,
+            he_to_prev_he,
+            he_to_parent,
+
+            parents,
+            parent_to_first_he,
+        })
+    }
+
+    pub fn validate_topology(self) -> Result<Safe2DMesh, MeshError> {
+        self.0.check_mesh()?;
+        Ok(Safe2DMesh(self.0))
+    }
+
+    /// Gets a mutable reference to a vertex from its index.
+    pub fn vertex_mut_from_index(&mut self, vertex_id: VertexIndex) -> &mut Point2<f64> {
+        &mut self.0.vertices[vertex_id]
+    }
+
+    /// Gets a mutable reference to the parent properties from its index.
+    pub fn parent_mut_from_index(&mut self, parent_id: ParentIndex) -> &mut Parent {
+        &mut self.0.parents[parent_id]
+    }
 
     /// Creates a new vertex on an half edge at a distance of ```distance_ratio``` (between 0. and 1.) the HalfEdge length
     pub fn split_edge(
@@ -337,47 +354,47 @@ impl Mutable2DMesh {
             });
         }
 
-        let new_vertex_id = VertexIndex(self.vertices.len());
+        let new_vertex_id = VertexIndex(self.0.vertices.len());
         let new_vertex_pos: Point2<f64> = {
-            let edge_vertices = self.vertices_from_he(he_id);
+            let edge_vertices = self.0.vertices_from_he(he_id);
             let edge_vertices = (
-                self.vertices[edge_vertices[0]],
-                self.vertices[edge_vertices[1]],
+                self.0.vertices[edge_vertices[0]],
+                self.0.vertices[edge_vertices[1]],
             );
             edge_vertices.0.lerp(&edge_vertices.1, distance_ratio)
         };
 
-        let he_ids = (he_id, self.twin_from_he(he_id));
+        let he_ids = (he_id, self.0.twin_from_he(he_id));
 
-        self.vertices.push(new_vertex_pos);
+        self.0.vertices.push(new_vertex_pos);
 
         let new_he_ids = (
-            HalfEdgeIndex(self.he_to_twin.len()),
-            HalfEdgeIndex(self.he_to_twin.len() + 1),
+            HalfEdgeIndex(self.0.he_to_twin.len()),
+            HalfEdgeIndex(self.0.he_to_twin.len() + 1),
         );
 
-        self.he_to_vertex.push(new_vertex_id);
-        self.he_to_vertex.push(new_vertex_id);
+        self.0.he_to_vertex.push(new_vertex_id);
+        self.0.he_to_vertex.push(new_vertex_id);
 
-        self.he_to_twin.push(he_ids.1);
-        self.he_to_twin.push(he_ids.0);
-        self.he_to_twin[he_ids.0] = new_he_ids.1;
-        self.he_to_twin[he_ids.1] = new_he_ids.0;
+        self.0.he_to_twin.push(he_ids.1);
+        self.0.he_to_twin.push(he_ids.0);
+        self.0.he_to_twin[he_ids.0] = new_he_ids.1;
+        self.0.he_to_twin[he_ids.1] = new_he_ids.0;
 
-        let next = self.next_he_from_he(he_ids.0);
-        self.he_to_next_he[he_ids.0] = new_he_ids.0;
-        self.he_to_next_he.push(next);
-        self.he_to_prev_he[next] = new_he_ids.0;
-        let next = self.next_he_from_he(he_ids.1);
-        self.he_to_next_he[he_ids.1] = new_he_ids.1;
-        self.he_to_next_he.push(next);
-        self.he_to_prev_he[next] = new_he_ids.1;
+        let next = self.0.next_he_from_he(he_ids.0);
+        self.0.he_to_next_he[he_ids.0] = new_he_ids.0;
+        self.0.he_to_next_he.push(next);
+        self.0.he_to_prev_he[next] = new_he_ids.0;
+        let next = self.0.next_he_from_he(he_ids.1);
+        self.0.he_to_next_he[he_ids.1] = new_he_ids.1;
+        self.0.he_to_next_he.push(next);
+        self.0.he_to_prev_he[next] = new_he_ids.1;
 
-        self.he_to_prev_he.push(he_ids.0);
-        self.he_to_prev_he.push(he_ids.1);
+        self.0.he_to_prev_he.push(he_ids.0);
+        self.0.he_to_prev_he.push(he_ids.1);
 
-        self.he_to_parent.push(self.parent_from_he(he_ids.0));
-        self.he_to_parent.push(self.parent_from_he(he_ids.1));
+        self.0.he_to_parent.push(self.0.parent_from_he(he_ids.0));
+        self.0.he_to_parent.push(self.0.parent_from_he(he_ids.1));
 
         Ok(())
     }
