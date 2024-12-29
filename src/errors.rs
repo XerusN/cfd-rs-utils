@@ -41,4 +41,8 @@ pub enum MeshError {
         he_next: HalfEdgeIndex,
         he_next_prev: HalfEdgeIndex,
     },
+    #[error("The object already exists")]
+    AlreadyExists,
+    #[error("The vertices is not contained in parent (vertex : {vertex:?}, parent : {parent:?})")]
+    ParentDoesNotContainVertex{vertex: VertexIndex, parent: ParentIndex},
 }

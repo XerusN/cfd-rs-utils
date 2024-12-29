@@ -1,3 +1,5 @@
+use std::usize;
+
 use crate::{boundary::Boundary, errors::MeshError};
 use indices::*;
 use nalgebra::Point2;
@@ -13,7 +15,7 @@ mod test;
 pub enum Parent {
     #[default]
     None,
-    Cell(usize),
+    Cell,
     Boundary(Boundary),
 }
 
@@ -115,7 +117,18 @@ impl Base2DMesh {
     pub fn parent_from_index(&self, parent_id: ParentIndex) -> &Parent {
         &self.parents[parent_id]
     }
-
+    
+    /// Gets the half-edges connected to a vertex
+    pub fn he_from_vertex(&self, vertex_id: VertexIndex) -> Vec<HalfEdgeIndex> {
+        let mut result = Vec::new();
+        for i in 0..self.he_len() {
+            if self.he_to_vertex[HalfEdgeIndex(i)] == vertex_id {
+                result.push(HalfEdgeIndex(i))
+            }
+        }
+        result
+    }
+    
     /// Check that the mesh topology is valid.
     /// Used to confirm the topology before switching to an immutable mesh and for test purpose.
     ///
@@ -272,7 +285,7 @@ impl Modifiable2DMesh {
         // All arrays are needed to be built correctly
 
         let cell = ParentIndex(parents.len());
-        parents.push(Parent::Cell(0));
+        parents.push(Parent::Cell);
 
         let mut prev_he_1 = HalfEdgeIndex(0);
         let mut prev_he_2 = HalfEdgeIndex(0);
@@ -360,6 +373,11 @@ impl Modifiable2DMesh {
         he_id: HalfEdgeIndex,
         distance_ratio: f64,
     ) -> Result<(), MeshError> {
+        
+        if he_id >= HalfEdgeIndex(self.0.he_len()) {
+            return Err(MeshError::HalfEdgeIndexOutOfBound { got: he_id, len: self.0.he_len() });
+        }
+        
         if (distance_ratio >= 1.0) | (distance_ratio <= 0.0) {
             return Err(MeshError::WrongFloatValue {
                 got: distance_ratio,
@@ -409,6 +427,73 @@ impl Modifiable2DMesh {
         self.0.he_to_parent.push(self.0.parent_from_he(he_ids.0));
         self.0.he_to_parent.push(self.0.parent_from_he(he_ids.1));
 
+        Ok(())
+    }
+    
+    /// The vertices must share a common parent.
+    pub fn add_edge_between_vertices(&mut self, vertices: (VertexIndex, VertexIndex), parent: ParentIndex) -> Result<(), MeshError>{
+        if vertices.0 >= VertexIndex(self.0.vertices_len()) {
+            return Err(MeshError::VertexIndexOutOfBound { got: vertices.0, len: self.0.vertices_len() });
+        }
+        if vertices.1 >= VertexIndex(self.0.vertices_len()) {
+            return Err(MeshError::VertexIndexOutOfBound { got: vertices.1, len: self.0.vertices_len() });
+        } 
+        
+        for (i, twin) in self.0.he_to_twin.iter().enumerate() {
+            let he = HalfEdgeIndex(i);
+            if (self.0.he_to_vertex[he] == vertices.0) & (self.0.he_to_vertex[*twin] == vertices.1) {
+                return Err(MeshError::AlreadyExists);
+            }
+        }
+        
+        let new_he = self.0.he_len();
+        self.0.he_to_vertex.push(vertices.0);
+        self.0.he_to_vertex.push(vertices.1);
+        self.0.he_to_twin.push(HalfEdgeIndex(new_he + 1));
+        self.0.he_to_twin.push(HalfEdgeIndex(new_he));
+        
+        let he_to_vertices = self.0.he_from_vertex(vertices.0);
+        
+        let new_cell = self.0.parents_len();
+        self.0.parents.push(Parent::Cell);
+        self.0.he_to_parent.push(ParentIndex(new_cell));
+        self.0.he_to_parent.push(parent);
+        
+        let mut he_from_vertex_with_parent = None;
+        for he in &he_to_vertices {
+            if self.0.he_to_parent[*he] == parent {
+                he_from_vertex_with_parent = Some(*he)
+            }
+        }
+        
+        let he_from_vertex_with_parent = match he_from_vertex_with_parent {
+            None => return Err(MeshError::ParentDoesNotContainVertex { vertex: vertices.0, parent }),
+            Some(value) => value,
+        };
+        
+        self.0.he_to_next_he.push(he_from_vertex_with_parent);
+        self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX));   // To be quite sure to have an error when checking the mesh if the value is not set correctly later
+        self.0.he_to_prev_he.push(HalfEdgeIndex(usize::MAX));
+        self.0.he_to_prev_he.push(self.0.he_to_prev_he[he_from_vertex_with_parent]);
+        self.0.he_to_next_he[self.0.he_to_prev_he[he_from_vertex_with_parent]] = HalfEdgeIndex(new_he + 1);
+        self.0.he_to_prev_he[he_from_vertex_with_parent] = HalfEdgeIndex(new_he);
+        
+        let mut current_he = he_from_vertex_with_parent;
+        while self.0.he_to_vertex[current_he] != vertices.1 {
+            self.0.he_to_parent[current_he] = ParentIndex(new_cell);
+            current_he = self.0.he_to_next_he[current_he];
+        }
+        
+        
+        self.0.he_to_prev_he[HalfEdgeIndex(new_he)] = current_he;
+        self.0.he_to_next_he[HalfEdgeIndex(new_he + 1)] = self.0.he_to_next_he[current_he];
+        self.0.he_to_prev_he[self.0.he_to_next_he[current_he]] = HalfEdgeIndex(new_he + 1);
+        self.0.he_to_next_he[current_he] = HalfEdgeIndex(new_he);
+        
+        self.0.parent_to_first_he[parent] = HalfEdgeIndex(new_he + 1);
+        
+        self.0.parent_to_first_he[ParentIndex(new_cell)] = HalfEdgeIndex(new_he);
+        
         Ok(())
     }
 }
