@@ -45,6 +45,21 @@ impl Base2DMesh {
             self.he_to_vertex[self.he_to_twin[he_id]],
         ]
     }
+    
+    /// Returns the number of vertices.
+    pub fn vertices_len(&self) -> usize {
+        self.vertices.len()
+    }
+    
+    /// Returns the number of half-edges.
+    pub fn he_len(&self) -> usize {
+        self.he_to_vertex.len()
+    }
+    
+    /// Returns the number of parents.
+    pub fn parents_len(&self) -> usize {
+        self.parents.len()
+    }
 
     /// Gets all half-edges from a parent (Cell or boundary).
     pub fn he_from_parent(&self, parent_id: ParentIndex) -> Vec<HalfEdgeIndex> {
