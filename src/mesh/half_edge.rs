@@ -224,7 +224,7 @@ impl Mutable2DMesh {
         
         for vertex in &self.he_to_vertex {
             if *vertex >= VertexIndex(self.vertices.len()) {
-                return Err(MeshError::VertexIndexOutOfBound { got: *vertex, len: self.he_to_vertex.len() })
+                return Err(MeshError::VertexIndexOutOfBound { got: *vertex, len: self.vertices.len() })
             }
         }
         
