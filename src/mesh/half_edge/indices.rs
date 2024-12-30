@@ -1,18 +1,11 @@
-use std::ops::{Deref, Index, IndexMut};
+use std::ops::{Index, IndexMut};
+use std::fmt;
 
 use super::Parent;
 use nalgebra::Point2;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct ParentIndex(pub usize);
-
-impl Deref for ParentIndex {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 impl Index<ParentIndex> for Vec<HalfEdgeIndex> {
     type Output = HalfEdgeIndex;
@@ -41,6 +34,13 @@ impl IndexMut<ParentIndex> for Vec<Parent> {
         &mut self[index.0]
     }
 }
+
+impl fmt::Display for ParentIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct HalfEdgeIndex(pub usize);
@@ -87,6 +87,12 @@ impl IndexMut<HalfEdgeIndex> for Vec<VertexIndex> {
     }
 }
 
+impl fmt::Display for HalfEdgeIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct VertexIndex(pub usize);
 
@@ -101,5 +107,11 @@ impl Index<VertexIndex> for Vec<Point2<f64>> {
 impl IndexMut<VertexIndex> for Vec<Point2<f64>> {
     fn index_mut(&mut self, index: VertexIndex) -> &mut Self::Output {
         &mut self[index.0]
+    }
+}
+
+impl fmt::Display for VertexIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

@@ -47,8 +47,50 @@ fn split_edge_test_1() {
 fn add_edge_between_vertices_test_1() {
     let mut mesh = simple_mesh();
 
-    mesh.add_edge_between_vertices((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
-        .unwrap();
+    unsafe {
+        mesh.add_edge_between_vertices((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
+            .unwrap();
+    }
 
+    mesh.0.check_mesh().unwrap();
+}
+
+#[test]
+fn extract_vertex_from_edge_test_1() {
+    let mut mesh = simple_mesh();
+
+    unsafe {
+        mesh.extract_vertex_from_edge(HalfEdgeIndex(4), Point2::new(0.5, 0.5)).unwrap()
+    }
+    
+    mesh.0.export_vtk("./output/test2.vtk").unwrap();
+    
+    mesh.0.check_mesh().unwrap();
+}
+
+#[test]
+fn combined_test() {
+    let mut mesh = simple_mesh();
+    
+    mesh.0.export_vtk("./output/test_0.vtk").unwrap();
+    
+    unsafe {
+        mesh.add_edge_between_vertices((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
+            .unwrap();
+    }
+    
+    mesh.0.export_vtk("./output/test_1.vtk").unwrap();
+    
+    mesh.split_edge(HalfEdgeIndex(8), 0.5).unwrap();
+    
+    mesh.0.export_vtk("./output/test_2.vtk").unwrap();
+    
+    unsafe {
+        mesh.add_edge_between_vertices((VertexIndex(4), VertexIndex(0)), ParentIndex(1))
+            .unwrap();
+    }
+    
+    mesh.0.export_vtk("./output/test_3.vtk").unwrap();
+    
     mesh.0.check_mesh().unwrap();
 }

@@ -2,6 +2,9 @@ use crate::{boundary::Boundary, errors::MeshError};
 use indices::*;
 use nalgebra::Point2;
 
+use std::fs::File;
+use std::io::{self, Write};
+
 pub mod indices;
 
 #[cfg(test)]
@@ -238,6 +241,45 @@ impl Base2DMesh {
 
         Ok(())
     }
+    
+    
+    /// Written by chatGPT, proper export function will be made later
+    pub fn export_vtk(&self, filename: &str) -> io::Result<()> {   
+        
+        let mut file = File::create(filename)?;
+
+        // Write VTK header
+        writeln!(file, "# vtk DataFile Version 3.0")?;
+        writeln!(file, "2D Mesh Example")?;
+        writeln!(file, "ASCII")?;
+        writeln!(file, "DATASET POLYDATA")?;
+
+        // Write points
+        writeln!(file, "POINTS {} float", self.vertices.len())?;
+        for vertex in &self.vertices {
+            writeln!(file, "{} {} 0.0", vertex.x, vertex.y)?;
+        }
+
+        // Write lines (edges)
+        let num_edges = self.he_to_next_he.len();
+        writeln!(file, "LINES {} {}", num_edges, num_edges * 3)?;
+        for (he, &twin_he) in self.he_to_twin.iter().enumerate() {
+            let start_vertex = self.he_to_vertex[he];
+            let end_vertex = self.he_to_vertex[twin_he];
+            writeln!(file, "2 {} {}", start_vertex, end_vertex)?;
+        }
+
+        // Write additional attributes (e.g., he_to_parent)
+        writeln!(file, "CELL_DATA {}", num_edges)?;
+        writeln!(file, "SCALARS he_to_parent int 1")?;
+        writeln!(file, "LOOKUP_TABLE default")?;
+        for &parent in &self.he_to_parent {
+            writeln!(file, "{}", parent)?;
+        }
+        
+        Ok(())
+
+    }
 }
 
 /// Gives access to modifications from Base2DMesh
@@ -430,8 +472,16 @@ impl Modifiable2DMesh {
         Ok(())
     }
 
-    /// The vertices must share a common parent.
-    pub fn add_edge_between_vertices(
+    /// Adds an edge between two vertices
+    /// The vertices must share a common parent
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as unsafe to warn about the risk of creating edges crossing each other, leading to wrong parent links.
+    /// The edge you are creating must not intersect with an cell boundary.
+    ///
+    /// This issue will be fixed later by introducing a line crossing algorithm.
+    pub unsafe fn add_edge_between_vertices(
         &mut self,
         vertices: (VertexIndex, VertexIndex),
         parent: ParentIndex,
@@ -522,4 +572,29 @@ impl Modifiable2DMesh {
 
         Ok(())
     }
+    
+    /// Creates a triangle
+    /// 
+    /// # Safety
+    /// 
+    /// You must specify the right half_edge corresponding to the direction you want your triangle.
+    pub unsafe fn extract_vertex_from_edge(&mut self, he: HalfEdgeIndex, pos: Point2<f64>) -> Result<(), MeshError> {
+        
+        if he >= HalfEdgeIndex(self.0.he_len()) {
+            return Err(MeshError::HalfEdgeIndexOutOfBound { got: he, len: self.0.he_len() });
+        }
+        
+        
+        let parent = self.0.he_to_parent[self.0.he_to_twin[he]];
+        let vertices = self.0.vertices_from_he(he);
+        let new_vertex = self.0.vertices_len();
+        self.split_edge(he, 0.5)?;
+        self.0.vertices[new_vertex] = pos;
+        unsafe {
+            self.add_edge_between_vertices((vertices[0], vertices[1]), parent)?;
+        }
+        
+        Ok(())
+    }
+    
 }
