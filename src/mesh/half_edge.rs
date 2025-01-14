@@ -1,6 +1,6 @@
 use crate::{boundary::Boundary, errors::MeshError};
 use indices::*;
-use nalgebra::Point2;
+use nalgebra::{Point2, Vector2};
 
 use std::fs::File;
 use std::io::{self, Write};
@@ -86,23 +86,23 @@ impl Base2DMesh {
     }
 
     /// Gets the parent from an HalfEdge.
-    pub fn parent_from_he(&self, he_id: HalfEdgeIndex) -> ParentIndex {
-        self.he_to_parent[he_id]
+    pub fn he_to_parent(&self) -> &Vec<ParentIndex> {
+        &self.he_to_parent
     }
 
     /// Gets the twin HalfEdge from an HalfEdge.
-    pub fn twin_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
-        self.he_to_twin[he_id]
+    pub fn he_to_twin(&self) -> &Vec<HalfEdgeIndex> {
+        &self.he_to_twin
     }
 
     /// Gets the next HalfEdge from an HalfEdge.
-    pub fn next_he_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
-        self.he_to_next_he[he_id]
+    pub fn he_to_next_he(&self) -> &Vec<HalfEdgeIndex> {
+        &self.he_to_next_he
     }
 
     /// Gets the previous HalfEdge from an HalfEdge.
-    pub fn prev_he_from_he(&self, he_id: HalfEdgeIndex) -> HalfEdgeIndex {
-        self.he_to_prev_he[he_id]
+    pub fn he_to_prev_he(&self) -> &Vec<HalfEdgeIndex> {
+        &self.he_to_prev_he
     }
 
     /// Gets the parents adjacent to another.
@@ -115,8 +115,8 @@ impl Base2DMesh {
     }
 
     /// Gets the parent properties from its index.
-    pub fn parent_from_index(&self, parent_id: ParentIndex) -> &Parent {
-        &self.parents[parent_id]
+    pub fn parents(&self) -> &Vec<Parent> {
+        &self.parents
     }
 
     /// Gets the half-edges connected to a vertex
@@ -128,6 +128,21 @@ impl Base2DMesh {
             }
         }
         result
+    }
+
+    /// Get the normal (unit vector) from an edge, oriented toward the exterior of the triangle.
+    pub fn normal(&self, he_id: HalfEdgeIndex) -> Vector2<f64> {
+        let vertices = self.vertices_from_he(he_id);
+        let vertices = [self.vertices[vertices[0]], self.vertices[vertices[1]]];
+        let segment = Vector2::new(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y);
+        Vector2::new(-segment.y, segment.x).normalize()
+    }
+
+    /// Returns the HalfEdge as a vector
+    pub fn he_vector(&self, he_id: HalfEdgeIndex) -> Vector2<f64> {
+        let vertices = self.vertices_from_he(he_id);
+        let vertices = [self.vertices[vertices[0]], self.vertices[vertices[1]]];
+        Vector2::new(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y)
     }
 
     /// Check that the mesh topology is valid.
@@ -229,11 +244,11 @@ impl Base2DMesh {
         for i in 0..self.parents.len() {
             let parent = ParentIndex(i);
             for he in self.he_from_parent(parent) {
-                if self.parent_from_he(he) != parent {
+                if self.he_to_parent[he] != parent {
                     return Err(MeshError::ParentNotCorrect {
                         parent,
                         he,
-                        he_parent: self.parent_from_he(he),
+                        he_parent: self.he_to_parent[he],
                     });
                 }
             }
@@ -241,11 +256,9 @@ impl Base2DMesh {
 
         Ok(())
     }
-    
-    
+
     /// Written by chatGPT, proper export function will be made later
-    pub fn export_vtk(&self, filename: &str) -> io::Result<()> {   
-        
+    pub fn export_vtk(&self, filename: &str) -> io::Result<()> {
         let mut file = File::create(filename)?;
 
         // Write VTK header
@@ -276,9 +289,8 @@ impl Base2DMesh {
         for &parent in &self.he_to_parent {
             writeln!(file, "{}", parent)?;
         }
-        
-        Ok(())
 
+        Ok(())
     }
 }
 
@@ -437,7 +449,7 @@ impl Modifiable2DMesh {
             edge_vertices.0.lerp(&edge_vertices.1, distance_ratio)
         };
 
-        let he_ids = (he_id, self.0.twin_from_he(he_id));
+        let he_ids = (he_id, self.0.he_to_twin[he_id]);
 
         self.0.vertices.push(new_vertex_pos);
 
@@ -454,11 +466,11 @@ impl Modifiable2DMesh {
         self.0.he_to_twin[he_ids.0] = new_he_ids.1;
         self.0.he_to_twin[he_ids.1] = new_he_ids.0;
 
-        let next = self.0.next_he_from_he(he_ids.0);
+        let next = self.0.he_to_next_he[he_ids.0];
         self.0.he_to_next_he[he_ids.0] = new_he_ids.0;
         self.0.he_to_next_he.push(next);
         self.0.he_to_prev_he[next] = new_he_ids.0;
-        let next = self.0.next_he_from_he(he_ids.1);
+        let next = self.0.he_to_next_he[he_ids.1];
         self.0.he_to_next_he[he_ids.1] = new_he_ids.1;
         self.0.he_to_next_he.push(next);
         self.0.he_to_prev_he[next] = new_he_ids.1;
@@ -466,8 +478,8 @@ impl Modifiable2DMesh {
         self.0.he_to_prev_he.push(he_ids.0);
         self.0.he_to_prev_he.push(he_ids.1);
 
-        self.0.he_to_parent.push(self.0.parent_from_he(he_ids.0));
-        self.0.he_to_parent.push(self.0.parent_from_he(he_ids.1));
+        self.0.he_to_parent.push(self.0.he_to_parent[he_ids.0]);
+        self.0.he_to_parent.push(self.0.he_to_parent[he_ids.1]);
 
         Ok(())
     }
@@ -481,7 +493,7 @@ impl Modifiable2DMesh {
     /// The edge you are creating must not intersect with an cell boundary.
     ///
     /// This issue will be fixed later by introducing a line crossing algorithm.
-    pub unsafe fn add_edge_between_vertices(
+    pub unsafe fn trimming(
         &mut self,
         vertices: (VertexIndex, VertexIndex),
         parent: ParentIndex,
@@ -572,29 +584,33 @@ impl Modifiable2DMesh {
 
         Ok(())
     }
-    
+
     /// Creates a triangle
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// You must specify the right half_edge corresponding to the direction you want your triangle.
-    pub unsafe fn extract_vertex_from_edge(&mut self, he: HalfEdgeIndex, pos: Point2<f64>) -> Result<(), MeshError> {
-        
+    pub unsafe fn notching(
+        &mut self,
+        he: HalfEdgeIndex,
+        pos: Point2<f64>,
+    ) -> Result<(), MeshError> {
         if he >= HalfEdgeIndex(self.0.he_len()) {
-            return Err(MeshError::HalfEdgeIndexOutOfBound { got: he, len: self.0.he_len() });
+            return Err(MeshError::HalfEdgeIndexOutOfBound {
+                got: he,
+                len: self.0.he_len(),
+            });
         }
-        
-        
+
         let parent = self.0.he_to_parent[self.0.he_to_twin[he]];
         let vertices = self.0.vertices_from_he(he);
         let new_vertex = self.0.vertices_len();
         self.split_edge(he, 0.5)?;
         self.0.vertices[new_vertex] = pos;
         unsafe {
-            self.add_edge_between_vertices((vertices[0], vertices[1]), parent)?;
+            self.trimming((vertices[0], vertices[1]), parent)?;
         }
-        
+
         Ok(())
     }
-    
 }

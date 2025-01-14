@@ -48,4 +48,6 @@ pub enum MeshError {
         vertex: VertexIndex,
         parent: ParentIndex,
     },
+    #[error("The mesh passed as input is badly constructed")]
+    WrongMeshInitialisation,
 }

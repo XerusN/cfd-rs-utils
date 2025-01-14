@@ -1,5 +1,5 @@
-use std::ops::{Index, IndexMut};
 use std::fmt;
+use std::ops::{Index, IndexMut};
 
 use super::Parent;
 use nalgebra::Point2;
@@ -40,7 +40,6 @@ impl fmt::Display for ParentIndex {
         write!(f, "{}", self.0)
     }
 }
-
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct HalfEdgeIndex(pub usize);
