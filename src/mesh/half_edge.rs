@@ -47,6 +47,10 @@ impl Base2DMesh {
         ]
     }
 
+    pub fn vertices(&self, v_id: VertexIndex) -> Point2<f64> {
+        self.vertices[v_id]
+    }
+
     /// Returns the number of vertices.
     pub fn vertices_len(&self) -> usize {
         self.vertices.len()
@@ -258,11 +262,12 @@ impl Base2DMesh {
     }
 
     /// Written by chatGPT, proper export function will be made later
-    pub fn export_vtk(&self, filename: &str) -> io::Result<()> {
+    pub fn export_vtk(&self, filename: &str, comment: Option<&str>) -> io::Result<()> {
         let mut file = File::create(filename)?;
 
         // Write VTK header
         writeln!(file, "# vtk DataFile Version 3.0")?;
+        writeln!(file, "# {}", comment.unwrap_or(""))?;
         writeln!(file, "2D Mesh Example")?;
         writeln!(file, "ASCII")?;
         writeln!(file, "DATASET POLYDATA")?;
