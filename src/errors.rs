@@ -50,4 +50,6 @@ pub enum MeshError {
     },
     #[error("The mesh passed as input is badly constructed")]
     WrongMeshInitialisation,
+    #[error("No Element is creatable on this edge")]
+    NoElementCreatable(HalfEdgeIndex),
 }

@@ -60,7 +60,8 @@ fn extract_vertex_from_edge_test_1() {
     let mut mesh = simple_mesh();
 
     unsafe {
-        mesh.notching(HalfEdgeIndex(4), Point2::new(0.5, 0.5))
+        _ = mesh
+            .notching(HalfEdgeIndex(4), Point2::new(0.5, 0.5))
             .unwrap()
     }
 

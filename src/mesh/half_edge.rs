@@ -489,20 +489,21 @@ impl Modifiable2DMesh {
         Ok(())
     }
 
-    /// Adds an edge between two vertices
-    /// The vertices must share a common parent
+    /// Adds an edge between two vertices.
+    /// The vertices must share a common parent.
+    /// Returns the new parent
     ///
     /// # Safety
     ///
     /// This function is marked as unsafe to warn about the risk of creating edges crossing each other, leading to wrong parent links.
-    /// The edge you are creating must not intersect with an cell boundary.
+    /// The edge you are creating must not intersect with a cell boundary.
     ///
-    /// This issue will be fixed later by introducing a line crossing algorithm.
+    /// This issue will be fixed later by introducing a line crossing check algorithm.
     pub unsafe fn trimming(
         &mut self,
         vertices: (VertexIndex, VertexIndex),
         parent: ParentIndex,
-    ) -> Result<(), MeshError> {
+    ) -> Result<ParentIndex, MeshError> {
         if vertices.0 >= VertexIndex(self.0.vertices_len()) {
             return Err(MeshError::VertexIndexOutOfBound {
                 got: vertices.0,
@@ -555,7 +556,7 @@ impl Modifiable2DMesh {
         };
 
         self.0.he_to_next_he.push(he_from_vertex_with_parent);
-        self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX)); // To be quite sure to have an error when checking the mesh if the value is not set correctly later
+        self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX)); // Placeholder to be quite sure to have an error when checking the mesh if the value is not set correctly later in the function
         self.0.he_to_prev_he.push(HalfEdgeIndex(usize::MAX));
         self.0
             .he_to_prev_he
@@ -587,19 +588,19 @@ impl Modifiable2DMesh {
 
         self.0.parent_to_first_he.push(HalfEdgeIndex(new_he));
 
-        Ok(())
+        Ok(ParentIndex(self.0.parents_len()))
     }
 
     /// Creates a triangle
     ///
     /// # Safety
     ///
-    /// You must specify the right half_edge corresponding to the direction you want your triangle.
+    /// You must specify the right half_edge corresponding to the direction you want your new triangle.
     pub unsafe fn notching(
         &mut self,
         he: HalfEdgeIndex,
         pos: Point2<f64>,
-    ) -> Result<(), MeshError> {
+    ) -> Result<ParentIndex, MeshError> {
         if he >= HalfEdgeIndex(self.0.he_len()) {
             return Err(MeshError::HalfEdgeIndexOutOfBound {
                 got: he,
@@ -612,10 +613,11 @@ impl Modifiable2DMesh {
         let new_vertex = self.0.vertices_len();
         self.split_edge(he, 0.5)?;
         self.0.vertices[new_vertex] = pos;
+        let new_parent;
         unsafe {
-            self.trimming((vertices[0], vertices[1]), parent)?;
+            new_parent = self.trimming((vertices[0], vertices[1]), parent)?;
         }
 
-        Ok(())
+        Ok(new_parent)
     }
 }
