@@ -523,27 +523,17 @@ impl Modifiable2DMesh {
                 return Err(MeshError::AlreadyExists);
             }
         }
-
-        let new_he = self.0.he_len();
-        self.0.he_to_vertex.push(vertices.0);
-        self.0.he_to_vertex.push(vertices.1);
-        self.0.he_to_twin.push(HalfEdgeIndex(new_he + 1));
-        self.0.he_to_twin.push(HalfEdgeIndex(new_he));
-
-        let he_to_vertices = self.0.he_from_vertex(vertices.0);
-
-        let new_cell = self.0.parents_len();
-        self.0.parents.push(Parent::Cell);
-        self.0.he_to_parent.push(ParentIndex(new_cell));
-        self.0.he_to_parent.push(parent);
-
+        
+        let hes_to_vertex = self.0.he_from_vertex(vertices.0);
+        
         let mut he_from_vertex_with_parent = None;
-        for he in &he_to_vertices {
+        for he in &hes_to_vertex {
             if self.0.he_to_parent[*he] == parent {
-                he_from_vertex_with_parent = Some(*he)
+                he_from_vertex_with_parent = Some(*he);
+                break;
             }
         }
-
+        
         let he_from_vertex_with_parent = match he_from_vertex_with_parent {
             None => {
                 return Err(MeshError::ParentDoesNotContainVertex {
@@ -553,7 +543,18 @@ impl Modifiable2DMesh {
             }
             Some(value) => value,
         };
+        
+        let new_he = self.0.he_len();
+        self.0.he_to_vertex.push(vertices.1);
+        self.0.he_to_vertex.push(vertices.0);
+        self.0.he_to_twin.push(HalfEdgeIndex(new_he + 1));
+        self.0.he_to_twin.push(HalfEdgeIndex(new_he));
 
+        let new_cell = self.0.parents_len();
+        self.0.parents.push(Parent::Cell);
+        self.0.he_to_parent.push(parent);
+        self.0.he_to_parent.push(ParentIndex(new_cell));
+        
         self.0.he_to_next_he.push(he_from_vertex_with_parent);
         self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX)); // Placeholder to be quite sure to have an error when checking the mesh if the value is not set correctly later in the function
         self.0.he_to_prev_he.push(HalfEdgeIndex(usize::MAX));
@@ -563,11 +564,12 @@ impl Modifiable2DMesh {
         self.0.he_to_next_he[self.0.he_to_prev_he[he_from_vertex_with_parent]] =
             HalfEdgeIndex(new_he + 1);
         self.0.he_to_prev_he[he_from_vertex_with_parent] = HalfEdgeIndex(new_he);
-
+        
         let mut current_he = he_from_vertex_with_parent;
+        
         let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.1 {
-            self.0.he_to_parent[current_he] = ParentIndex(new_cell);
+            self.0.he_to_parent[current_he] = parent;
             current_he = self.0.he_to_next_he[current_he];
             i += 1;
             if i >= self.0.he_len() {
@@ -577,15 +579,29 @@ impl Modifiable2DMesh {
                 });
             }
         }
-
+        
         self.0.he_to_prev_he[HalfEdgeIndex(new_he)] = self.0.he_to_prev_he[current_he];
         self.0.he_to_next_he[HalfEdgeIndex(new_he + 1)] = current_he;
         self.0.he_to_next_he[self.0.he_to_prev_he[current_he]] = HalfEdgeIndex(new_he);
         self.0.he_to_prev_he[current_he] = HalfEdgeIndex(new_he + 1);
+        
+        let mut i = 0;
+        while self.0.he_to_vertex[current_he] != vertices.0 {
+            self.0.he_to_parent[current_he] = ParentIndex(new_cell);
+            current_he = self.0.he_to_next_he[current_he];
+            i += 1;
+            if i >= self.0.he_len() {
+                // Should not be possible
+                return Err(MeshError::ParentDoesNotContainVertex {
+                    vertex: vertices.0,
+                    parent,
+                });
+            }
+        }
+        
+        self.0.parent_to_first_he[parent] = HalfEdgeIndex(new_he);
 
-        self.0.parent_to_first_he[parent] = HalfEdgeIndex(new_he + 1);
-
-        self.0.parent_to_first_he.push(HalfEdgeIndex(new_he));
+        self.0.parent_to_first_he.push(HalfEdgeIndex(new_he+1));
 
         Ok(ParentIndex(new_cell))
     }

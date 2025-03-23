@@ -88,11 +88,28 @@ fn combined_test() {
     mesh.0.export_vtk("./output/test_2.vtk").unwrap();
 
     unsafe {
-        mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1))
+        mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2))
             .unwrap();
     }
 
     mesh.0.export_vtk("./output/test_3.vtk").unwrap();
 
     mesh.0.check_mesh().unwrap();
+}
+
+#[test]
+fn notching_test() {
+    let mut mesh = simple_mesh();
+    unsafe {
+        mesh.notching(HalfEdgeIndex(0), Point2::new(0.5, 0.5)).unwrap();
+    }
+    let mut boundary= None;
+    for (i, parent) in mesh.0.parents().iter().enumerate() {
+        if let &Parent::Boundary(_) = parent {
+            boundary = Some(i);
+            break;
+        }
+    }
+    println!("len boundary {:?}", mesh.0.vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming"))).len());
+    assert!(mesh.0.vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming"))).len() == 4)
 }
