@@ -156,7 +156,7 @@ impl Base2DMesh {
     /// For now it mostly checks coherence between arrays and that not indices are out of bound.
     ///
     /// If you find some cases not covered by this function, don't hesitate to submit a pull request or detail what you would like implemented.
-    fn check_mesh(&self) -> Result<(), MeshError> {
+    pub fn check_mesh(&self) -> Result<(), MeshError> {
         //Checks length coherence between HalfEdges arrays
         assert_eq!(self.he_to_next_he.len(), self.he_to_twin.len());
         assert_eq!(self.he_to_prev_he.len(), self.he_to_twin.len());
@@ -262,12 +262,11 @@ impl Base2DMesh {
     }
 
     /// Written by chatGPT, proper export function will be made later
-    pub fn export_vtk(&self, filename: &str, comment: Option<&str>) -> io::Result<()> {
+    pub fn export_vtk(&self, filename: &str) -> io::Result<()> {
         let mut file = File::create(filename)?;
 
         // Write VTK header
         writeln!(file, "# vtk DataFile Version 3.0")?;
-        writeln!(file, "# {}", comment.unwrap_or(""))?;
         writeln!(file, "2D Mesh Example")?;
         writeln!(file, "ASCII")?;
         writeln!(file, "DATASET POLYDATA")?;

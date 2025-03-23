@@ -65,7 +65,7 @@ fn extract_vertex_from_edge_test_1() {
             .unwrap()
     }
 
-    mesh.0.export_vtk("./output/test2.vtk", None).unwrap();
+    mesh.0.export_vtk("./output/test2.vtk").unwrap();
 
     mesh.0.check_mesh().unwrap();
 }
@@ -74,25 +74,25 @@ fn extract_vertex_from_edge_test_1() {
 fn combined_test() {
     let mut mesh = simple_mesh();
 
-    mesh.0.export_vtk("./output/test_0.vtk", None).unwrap();
+    mesh.0.export_vtk("./output/test_0.vtk").unwrap();
 
     unsafe {
         mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
             .unwrap();
     }
 
-    mesh.0.export_vtk("./output/test_1.vtk", None).unwrap();
+    mesh.0.export_vtk("./output/test_1.vtk").unwrap();
 
     mesh.split_edge(HalfEdgeIndex(8), 0.5).unwrap();
 
-    mesh.0.export_vtk("./output/test_2.vtk", None).unwrap();
+    mesh.0.export_vtk("./output/test_2.vtk").unwrap();
 
     unsafe {
         mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1))
             .unwrap();
     }
 
-    mesh.0.export_vtk("./output/test_3.vtk", None).unwrap();
+    mesh.0.export_vtk("./output/test_3.vtk").unwrap();
 
     mesh.0.check_mesh().unwrap();
 }
