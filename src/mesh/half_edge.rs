@@ -588,7 +588,7 @@ impl Modifiable2DMesh {
 
         self.0.parent_to_first_he.push(HalfEdgeIndex(new_he));
 
-        Ok(ParentIndex(self.0.parents_len()))
+        Ok(ParentIndex(new_cell))
     }
 
     /// Creates a triangle
