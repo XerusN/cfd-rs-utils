@@ -296,6 +296,7 @@ impl Base2DMesh {
 
         Ok(())
     }
+    
 }
 
 /// Gives access to modifications from Base2DMesh
@@ -543,6 +544,28 @@ impl Modifiable2DMesh {
             }
             Some(value) => value,
         };
+        
+        let hes_to_vertex_2 = self.0.he_from_vertex(vertices.1);
+        
+        let mut he_from_vertex_with_parent_2 = None;
+        for he in &hes_to_vertex_2 {
+            if self.0.he_to_parent[*he] == parent {
+                he_from_vertex_with_parent_2 = Some(*he);
+                break;
+            }
+        }
+        
+        match he_from_vertex_with_parent_2 {
+            None => {
+                return Err(MeshError::ParentDoesNotContainVertex {
+                    vertex: vertices.1,
+                    parent,
+                })
+            }
+            Some(_) => (),
+        };
+        
+        
         
         let new_he = self.0.he_len();
         self.0.he_to_vertex.push(vertices.1);

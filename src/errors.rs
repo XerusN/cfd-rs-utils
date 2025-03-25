@@ -52,4 +52,6 @@ pub enum MeshError {
     WrongMeshInitialisation,
     #[error("No Element is creatable on this edge")]
     NoElementCreatable(HalfEdgeIndex),
+    #[error("Maximum iteration reached ({max_it:?})")]
+    MaxIterationReached{max_it: usize},
 }

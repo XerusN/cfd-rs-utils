@@ -75,7 +75,8 @@ fn combined_test() {
     let mut mesh = simple_mesh();
 
     mesh.0.export_vtk("./output/test_0.vtk").unwrap();
-
+    
+    
     unsafe {
         mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
             .unwrap();
@@ -88,6 +89,12 @@ fn combined_test() {
     mesh.0.export_vtk("./output/test_2.vtk").unwrap();
 
     unsafe {
+        if let Err(MeshError::ParentDoesNotContainVertex{vertex: _, parent: _}) = mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1)) {
+            ();
+        } else {
+            panic!("Trimming did not catch wrong parent use")
+        }
+        
         mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2))
             .unwrap();
     }
