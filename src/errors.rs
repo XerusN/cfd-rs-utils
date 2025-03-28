@@ -53,5 +53,17 @@ pub enum MeshError {
     #[error("No Element is creatable on this edge")]
     NoElementCreatable(HalfEdgeIndex),
     #[error("Maximum iteration reached ({max_it:?})")]
-    MaxIterationReached{max_it: usize},
+    MaxIterationReached { max_it: usize },
+    #[error("Parent needs to be a triangle ({parent:?})")]
+    ParentNotTriangle { parent: ParentIndex },
+    #[error("No common edges ({parent_0:?} and {parent_1:?})")]
+    NoCommonEdge {
+        parent_0: ParentIndex,
+        parent_1: ParentIndex,
+    },
+    #[error("Parents have aligned edges ({parent_0:?} and {parent_1:?})")]
+    AllignedEdges {
+        parent_0: ParentIndex,
+        parent_1: ParentIndex,
+    },
 }

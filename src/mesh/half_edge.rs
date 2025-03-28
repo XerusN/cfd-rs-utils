@@ -296,7 +296,6 @@ impl Base2DMesh {
 
         Ok(())
     }
-    
 }
 
 /// Gives access to modifications from Base2DMesh
@@ -524,9 +523,9 @@ impl Modifiable2DMesh {
                 return Err(MeshError::AlreadyExists);
             }
         }
-        
+
         let hes_to_vertex = self.0.he_from_vertex(vertices.0);
-        
+
         let mut he_from_vertex_with_parent = None;
         for he in &hes_to_vertex {
             if self.0.he_to_parent[*he] == parent {
@@ -534,7 +533,7 @@ impl Modifiable2DMesh {
                 break;
             }
         }
-        
+
         let he_from_vertex_with_parent = match he_from_vertex_with_parent {
             None => {
                 return Err(MeshError::ParentDoesNotContainVertex {
@@ -544,9 +543,9 @@ impl Modifiable2DMesh {
             }
             Some(value) => value,
         };
-        
+
         let hes_to_vertex_2 = self.0.he_from_vertex(vertices.1);
-        
+
         let mut he_from_vertex_with_parent_2 = None;
         for he in &hes_to_vertex_2 {
             if self.0.he_to_parent[*he] == parent {
@@ -554,19 +553,14 @@ impl Modifiable2DMesh {
                 break;
             }
         }
-        
-        match he_from_vertex_with_parent_2 {
-            None => {
-                return Err(MeshError::ParentDoesNotContainVertex {
-                    vertex: vertices.1,
-                    parent,
-                })
-            }
-            Some(_) => (),
+
+        if he_from_vertex_with_parent_2.is_none() {
+            return Err(MeshError::ParentDoesNotContainVertex {
+                vertex: vertices.1,
+                parent,
+            });
         };
-        
-        
-        
+
         let new_he = self.0.he_len();
         self.0.he_to_vertex.push(vertices.1);
         self.0.he_to_vertex.push(vertices.0);
@@ -577,7 +571,7 @@ impl Modifiable2DMesh {
         self.0.parents.push(Parent::Cell);
         self.0.he_to_parent.push(parent);
         self.0.he_to_parent.push(ParentIndex(new_cell));
-        
+
         self.0.he_to_next_he.push(he_from_vertex_with_parent);
         self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX)); // Placeholder to be quite sure to have an error when checking the mesh if the value is not set correctly later in the function
         self.0.he_to_prev_he.push(HalfEdgeIndex(usize::MAX));
@@ -587,9 +581,9 @@ impl Modifiable2DMesh {
         self.0.he_to_next_he[self.0.he_to_prev_he[he_from_vertex_with_parent]] =
             HalfEdgeIndex(new_he + 1);
         self.0.he_to_prev_he[he_from_vertex_with_parent] = HalfEdgeIndex(new_he);
-        
+
         let mut current_he = he_from_vertex_with_parent;
-        
+
         let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.1 {
             self.0.he_to_parent[current_he] = parent;
@@ -602,12 +596,12 @@ impl Modifiable2DMesh {
                 });
             }
         }
-        
+
         self.0.he_to_prev_he[HalfEdgeIndex(new_he)] = self.0.he_to_prev_he[current_he];
         self.0.he_to_next_he[HalfEdgeIndex(new_he + 1)] = current_he;
         self.0.he_to_next_he[self.0.he_to_prev_he[current_he]] = HalfEdgeIndex(new_he);
         self.0.he_to_prev_he[current_he] = HalfEdgeIndex(new_he + 1);
-        
+
         let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.0 {
             self.0.he_to_parent[current_he] = ParentIndex(new_cell);
@@ -621,10 +615,10 @@ impl Modifiable2DMesh {
                 });
             }
         }
-        
+
         self.0.parent_to_first_he[parent] = HalfEdgeIndex(new_he);
 
-        self.0.parent_to_first_he.push(HalfEdgeIndex(new_he+1));
+        self.0.parent_to_first_he.push(HalfEdgeIndex(new_he + 1));
 
         Ok(ParentIndex(new_cell))
     }
@@ -657,5 +651,98 @@ impl Modifiable2DMesh {
         }
 
         Ok(new_parent)
+    }
+
+    /// Meant to implement mesh adjustement using delaunay condition.
+    ///
+    /// Parents needs to be adjacent triangles and the triangles must not have aligned edges
+    pub fn swap_edge(&mut self, parents: (ParentIndex, ParentIndex)) -> Result<(), MeshError> {
+        if self.0.vertices_from_parent(parents.0).len() != 3 {
+            return Err(MeshError::ParentNotTriangle { parent: parents.0 });
+        }
+        if self.0.vertices_from_parent(parents.1).len() != 3 {
+            return Err(MeshError::ParentNotTriangle { parent: parents.1 });
+        }
+
+        let mut common_he = None;
+        'outer: for he_0 in self.0.he_from_parent(parents.0) {
+            for he_1 in self.0.he_from_parent(parents.1) {
+                if he_0 == self.0.he_to_twin()[he_1] {
+                    common_he = Some(he_0);
+                    break 'outer;
+                }
+            }
+        }
+
+        let common_he = match common_he {
+            None => {
+                return Err(MeshError::NoCommonEdge {
+                    parent_0: parents.0,
+                    parent_1: parents.1,
+                })
+            }
+            Some(he) => he,
+        };
+
+        // Not implemented using an edge removal followed by a trimming due to all the modifications needed for an edge removal
+        let hes_0 = [
+            common_he,
+            self.0.he_to_next_he()[common_he],
+            self.0.he_to_next_he()[self.0.he_to_next_he()[common_he]],
+        ];
+        let hes_1 = [
+            self.0.he_to_twin()[common_he],
+            self.0.he_to_next_he()[self.0.he_to_twin()[common_he]],
+            self.0.he_to_next_he()[self.0.he_to_next_he()[self.0.he_to_twin()[common_he]]],
+        ];
+
+        // Check that no edges are aligned to avoid triangle with no area creation
+        let vec_0 = self.0.he_vector(hes_0[1]);
+        let vec_1 = self.0.he_vector(hes_1[2]);
+        if vec_0.x / vec_1.x == vec_0.y / vec_1.y {
+            return Err(MeshError::AllignedEdges {
+                parent_0: parents.0,
+                parent_1: parents.1,
+            });
+        }
+
+        // Check that no edges are aligned to avoid triangle with no area creation
+        let vec_0 = self.0.he_vector(hes_0[2]);
+        let vec_1 = self.0.he_vector(hes_1[1]);
+        if vec_0.x / vec_1.x == vec_0.y / vec_1.y {
+            return Err(MeshError::AllignedEdges {
+                parent_0: parents.0,
+                parent_1: parents.1,
+            });
+        }
+
+        self.0.he_to_vertex[hes_0[0]] = self.0.he_to_vertex[hes_0[2]];
+        self.0.he_to_vertex[hes_1[0]] = self.0.he_to_vertex[hes_1[2]];
+
+        self.0.he_to_next_he[hes_0[0]] = hes_1[2];
+        self.0.he_to_prev_he[hes_1[2]] = hes_0[0];
+
+        self.0.he_to_next_he[hes_0[1]] = hes_0[0];
+        self.0.he_to_prev_he[hes_0[0]] = hes_0[1];
+
+        self.0.he_to_next_he[hes_0[2]] = hes_1[1];
+        self.0.he_to_prev_he[hes_1[1]] = hes_0[2];
+
+        self.0.he_to_next_he[hes_1[0]] = hes_0[2];
+        self.0.he_to_prev_he[hes_0[2]] = hes_1[0];
+
+        self.0.he_to_next_he[hes_1[1]] = hes_1[0];
+        self.0.he_to_prev_he[hes_1[0]] = hes_1[1];
+
+        self.0.he_to_next_he[hes_1[2]] = hes_0[1];
+        self.0.he_to_prev_he[hes_0[1]] = hes_1[2];
+
+        self.0.he_to_parent[hes_0[2]] = parents.1;
+        self.0.he_to_parent[hes_1[2]] = parents.0;
+
+        self.0.parent_to_first_he[parents.0] = hes_0[0];
+        self.0.parent_to_first_he[parents.1] = hes_1[0];
+
+        Ok(())
     }
 }

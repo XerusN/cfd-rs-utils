@@ -75,8 +75,7 @@ fn combined_test() {
     let mut mesh = simple_mesh();
 
     mesh.0.export_vtk("./output/test_0.vtk").unwrap();
-    
-    
+
     unsafe {
         mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
             .unwrap();
@@ -88,18 +87,44 @@ fn combined_test() {
 
     mesh.0.export_vtk("./output/test_2.vtk").unwrap();
 
+    let new_parent;
+
     unsafe {
-        if let Err(MeshError::ParentDoesNotContainVertex{vertex: _, parent: _}) = mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1)) {
+        if let Err(MeshError::ParentDoesNotContainVertex {
+            vertex: _,
+            parent: _,
+        }) = mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1))
+        {
             ();
         } else {
             panic!("Trimming did not catch wrong parent use")
         }
-        
-        mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2))
+
+        new_parent = mesh
+            .trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2))
             .unwrap();
     }
 
     mesh.0.export_vtk("./output/test_3.vtk").unwrap();
+
+    if let Err(MeshError::AllignedEdges {
+        parent_0: _,
+        parent_1: _,
+    }) = mesh.swap_edge((new_parent, ParentIndex(2)))
+    {
+        ();
+    } else {
+        panic!("Swap Edge did not catch aligned edges (null area triangle creation")
+    }
+
+    let value = mesh.0.vertices.len() - 1;
+    mesh.0.vertices[value] = Point2::new(0.6, 0.6);
+
+    mesh.0.export_vtk("./output/test_4.vtk").unwrap();
+
+    mesh.swap_edge((new_parent, ParentIndex(2))).unwrap();
+
+    mesh.0.export_vtk("./output/test_5.vtk").unwrap();
 
     mesh.0.check_mesh().unwrap();
 }
@@ -108,15 +133,26 @@ fn combined_test() {
 fn notching_test() {
     let mut mesh = simple_mesh();
     unsafe {
-        mesh.notching(HalfEdgeIndex(0), Point2::new(0.5, 0.5)).unwrap();
+        mesh.notching(HalfEdgeIndex(0), Point2::new(0.5, 0.5))
+            .unwrap();
     }
-    let mut boundary= None;
+    let mut boundary = None;
     for (i, parent) in mesh.0.parents().iter().enumerate() {
         if let &Parent::Boundary(_) = parent {
             boundary = Some(i);
             break;
         }
     }
-    println!("len boundary {:?}", mesh.0.vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming"))).len());
-    assert!(mesh.0.vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming"))).len() == 4)
+    println!(
+        "len boundary {:?}",
+        mesh.0
+            .vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming")))
+            .len()
+    );
+    assert!(
+        mesh.0
+            .vertices_from_parent(ParentIndex(boundary.expect("No boundary after trimming")))
+            .len()
+            == 4
+    )
 }
