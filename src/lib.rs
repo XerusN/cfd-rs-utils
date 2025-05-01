@@ -8,3 +8,4 @@ pub mod boundary;
 pub mod errors;
 pub mod mesh;
 pub mod control;
+pub mod geometry;

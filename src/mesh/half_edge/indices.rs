@@ -1,6 +1,7 @@
 use std::fmt;
 use std::ops::{Index, IndexMut};
 
+use crate::mesh::computational_mesh::{BoundaryPatch, Cell};
 use super::Parent;
 use nalgebra::Point2;
 
@@ -110,6 +111,75 @@ impl IndexMut<VertexIndex> for Vec<Point2<f64>> {
 }
 
 impl fmt::Display for VertexIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+pub struct FaceIndex(pub usize);
+
+impl Index<FaceIndex> for Vec<Point2<f64>> {
+    type Output = Point2<f64>;
+
+    fn index(&self, index: FaceIndex) -> &Self::Output {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<FaceIndex> for Vec<Point2<f64>> {
+    fn index_mut(&mut self, index: FaceIndex) -> &mut Self::Output {
+        &mut self[index.0]
+    }
+}
+
+impl fmt::Display for FaceIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+pub struct CellIndex(pub usize);
+
+impl Index<CellIndex> for Vec<Cell> {
+    type Output = Cell;
+
+    fn index(&self, index: CellIndex) -> &Self::Output {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<CellIndex> for Vec<Cell> {
+    fn index_mut(&mut self, index: CellIndex) -> &mut Self::Output {
+        &mut self[index.0]
+    }
+}
+
+impl fmt::Display for CellIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+pub struct BoundaryPatchIndex(pub usize);
+
+impl Index<BoundaryPatchIndex> for Vec<BoundaryPatch> {
+    type Output = BoundaryPatch;
+
+    fn index(&self, index: BoundaryPatchIndex) -> &Self::Output {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<BoundaryPatchIndex> for Vec<BoundaryPatch> {
+    fn index_mut(&mut self, index: BoundaryPatchIndex) -> &mut Self::Output {
+        &mut self[index.0]
+    }
+}
+
+impl fmt::Display for BoundaryPatchIndex {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
