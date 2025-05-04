@@ -41,6 +41,22 @@ impl Face {
             patches,
         }
     }
+    
+    pub fn vertices(&self) -> &[VertexIndex; 2] {
+        &self.vertices
+    }
+    
+    pub fn normal(&self) -> &Vector2<f64> {
+        &self.normal
+    }
+    
+    pub fn area(&self) -> f64 {
+        self.area
+    }
+    
+    pub fn patches(&self) -> &(Patch, Patch) {
+        &self.patches
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -85,8 +101,8 @@ impl Cell {
         self.volume
     }
 
-    pub fn centroid(&self) -> Point2<f64> {
-        self.centroid
+    pub fn centroid(&self) -> &Point2<f64> {
+        &self.centroid
     }
 
     pub fn faces_id(&self) -> &[FaceIndex] {
