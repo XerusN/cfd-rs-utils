@@ -1,8 +1,8 @@
 use std::fmt;
 use std::ops::{Index, IndexMut};
 
-use crate::mesh::computational_mesh::{BoundaryPatch, Cell};
 use super::Parent;
+use crate::mesh::computational_mesh::{BoundaryPatch, Cell};
 use nalgebra::Point2;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]

@@ -13,5 +13,16 @@ pub fn line_normal(points: &[Point2<f64>; 2]) -> Vector2<f64> {
 }
 
 pub fn triangle_centroid(points: &[Point2<f64>; 3]) -> Point2<f64> {
-    Point2::new((points[0].x + points[1].x + points[2].x)/3., (points[0].y + points[1].y + points[2].y)/3.)
+    Point2::new(
+        (points[0].x + points[1].x + points[2].x) / 3.,
+        (points[0].y + points[1].y + points[2].y) / 3.,
+    )
+}
+
+pub fn geometric_weighting_factor(
+    cell_centroids: &[Point2<f64>; 2],
+    face_center: &Point2<f64>,
+) -> f64 {
+    line_length(&[cell_centroids[1], *face_center])
+        / line_length(&[cell_centroids[0], cell_centroids[1]])
 }

@@ -5,7 +5,7 @@
 //! Mesh is represented using array based half-edge data structure
 
 pub mod boundary;
-pub mod errors;
-pub mod mesh;
 pub mod control;
+pub mod errors;
 pub mod geometry;
+pub mod mesh;
