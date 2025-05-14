@@ -32,7 +32,7 @@ impl Face {
         vertices_glob: &[Point2<f64>],
     ) -> Self {
         let area = line_length(&[vertices_glob[vertices[0].0], vertices_glob[vertices[1].0]]);
-        let normal = - line_normal(&[vertices_glob[vertices[0].0], vertices_glob[vertices[1].0]]);
+        let normal = -line_normal(&[vertices_glob[vertices[0].0], vertices_glob[vertices[1].0]]);
 
         Face {
             vertices,
@@ -41,20 +41,20 @@ impl Face {
             patches,
         }
     }
-    
+
     pub fn vertices(&self) -> &[VertexIndex; 2] {
         &self.vertices
     }
-    
+
     /// From the first patch to the second
     pub fn normal(&self) -> &Vector2<f64> {
         &self.normal
     }
-    
+
     pub fn area(&self) -> f64 {
         self.area
     }
-    
+
     pub fn patches(&self) -> &(Patch, Patch) {
         &self.patches
     }

@@ -8,7 +8,7 @@ pub fn triangle_area(points: &[Point2<f64>; 3]) -> f64 {
         line_length(&[points[2], points[0]]),
     );
     let s = 0.5 * (a + b + c);
-    (s*(s-a)*(s-b)*(s-c)).sqrt()
+    (s * (s - a) * (s - b) * (s - c)).sqrt()
 }
 
 pub fn line_length(points: &[Point2<f64>; 2]) -> f64 {
