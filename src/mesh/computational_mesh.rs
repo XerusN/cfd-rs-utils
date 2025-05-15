@@ -1,5 +1,3 @@
-use std::iter::Skip;
-
 use nalgebra::{Point2, Vector2};
 
 use crate::boundary::Boundary;
