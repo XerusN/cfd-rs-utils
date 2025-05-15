@@ -1,3 +1,5 @@
+use std::iter::Skip;
+
 use nalgebra::{Point2, Vector2};
 
 use crate::boundary::Boundary;
@@ -115,6 +117,23 @@ impl Cell {
             .iter()
             .map(|f_id| &faces_glob[f_id.0])
             .collect::<Vec<&Face>>()
+    }
+    
+    pub fn neighboring_cells_id(&self, cells_glob: &[Cell], faces_glob: &[Face]) -> Vec<CellIndex> {
+        let faces = self.faces(faces_glob);
+        
+        faces.iter().filter_map(|&face| {
+            match face.patches().0 {
+                Patch::Cell(id) if &cells_glob[id.0] == self => {
+                    match face.patches().1 {
+                        Patch::Cell(id) => Some(id),
+                        _ => None,
+                    }
+                }
+                Patch::Cell(id) => Some(id),
+                _ => None,
+            }
+        }).collect()
     }
 
     pub fn vertices_id(&self) -> &[VertexIndex] {
