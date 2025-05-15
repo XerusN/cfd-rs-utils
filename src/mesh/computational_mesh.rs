@@ -202,6 +202,10 @@ impl Computational2DMesh {
         &self.faces
     }
     
+    pub fn neighboring_cells_id(&self, cell: CellIndex) -> Vec<CellIndex> {
+        self.cells[cell].neighboring_cells_id(&self.cells, &self.faces)
+    }
+    
     pub fn new_from_he(mesh: Base2DMesh) -> Self {
         let mut vertices = Vec::with_capacity(mesh.vertices_len());
         for i in 0..mesh.vertices_len() {
