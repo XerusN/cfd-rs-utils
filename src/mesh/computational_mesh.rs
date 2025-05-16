@@ -116,22 +116,21 @@ impl Cell {
             .map(|f_id| &faces_glob[f_id.0])
             .collect::<Vec<&Face>>()
     }
-    
+
     pub fn neighboring_cells_id(&self, cells_glob: &[Cell], faces_glob: &[Face]) -> Vec<CellIndex> {
         let faces = self.faces(faces_glob);
-        
-        faces.iter().filter_map(|&face| {
-            match face.patches().0 {
-                Patch::Cell(id) if &cells_glob[id.0] == self => {
-                    match face.patches().1 {
-                        Patch::Cell(id) => Some(id),
-                        _ => None,
-                    }
-                }
+
+        faces
+            .iter()
+            .filter_map(|&face| match face.patches().0 {
+                Patch::Cell(id) if &cells_glob[id.0] == self => match face.patches().1 {
+                    Patch::Cell(id) => Some(id),
+                    _ => None,
+                },
                 Patch::Cell(id) => Some(id),
                 _ => None,
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     pub fn vertices_id(&self) -> &[VertexIndex] {
@@ -183,27 +182,26 @@ pub struct Computational2DMesh {
 }
 
 impl Computational2DMesh {
-    
     pub fn num_cells(&self) -> usize {
         self.cells.len()
     }
-    
+
     pub fn num_faces(&self) -> usize {
         self.faces.len()
     }
-    
+
     pub fn cells(&self) -> &[Cell] {
         &self.cells
     }
-    
+
     pub fn faces(&self) -> &[Face] {
         &self.faces
     }
-    
+
     pub fn neighboring_cells_id(&self, cell: CellIndex) -> Vec<CellIndex> {
         self.cells[cell].neighboring_cells_id(&self.cells, &self.faces)
     }
-    
+
     pub fn new_from_he(mesh: Base2DMesh) -> Self {
         let mut vertices = Vec::with_capacity(mesh.vertices_len());
         for i in 0..mesh.vertices_len() {
