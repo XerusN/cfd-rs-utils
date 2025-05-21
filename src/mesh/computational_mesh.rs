@@ -1,6 +1,5 @@
 use nalgebra::{Point2, Vector2};
 
-use crate::boundary::Boundary;
 use crate::geometry::*;
 
 use super::{
@@ -147,29 +146,30 @@ impl Cell {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BoundaryPatch {
-    boundary: Boundary,
-    faces: Vec<FaceIndex>,
+    name: String,
+    // Difficult to implement, to be considered
+    //faces: Vec<FaceIndex>,
 }
 
 impl BoundaryPatch {
-    pub fn new(boundary: Boundary, faces: Vec<FaceIndex>) -> Self {
-        BoundaryPatch { boundary, faces }
+    pub fn new(name: String) -> Self {
+        BoundaryPatch { name }
     }
 
-    pub fn boundary(&self) -> &Boundary {
-        &self.boundary
+    pub fn boundary(&self) -> &str {
+        &self.name
     }
 
-    pub fn faces_id(&self) -> &[FaceIndex] {
-        &self.faces
-    }
+    // pub fn faces_id(&self) -> &[FaceIndex] {
+    //     &self.faces
+    // }
 
-    pub fn faces<'a>(&self, faces_glob: &'a [Face]) -> Vec<&'a Face> {
-        self.faces
-            .iter()
-            .map(|f_id| &faces_glob[f_id.0])
-            .collect::<Vec<&Face>>()
-    }
+    // pub fn faces<'a>(&self, faces_glob: &'a [Face]) -> Vec<&'a Face> {
+    //     self.faces
+    //         .iter()
+    //         .map(|f_id| &faces_glob[f_id.0])
+    //         .collect::<Vec<&Face>>()
+    // }
 }
 
 /// Contains all the topological and geometric data needed by a mesh
@@ -210,7 +210,6 @@ impl Computational2DMesh {
 
         let mut parent_to_patch = vec![];
         let mut cell_id = 0;
-        let mut boundary_id = 0;
 
         for parent in mesh.parents() {
             match *parent {
@@ -219,9 +218,9 @@ impl Computational2DMesh {
                     parent_to_patch.push(Patch::Cell(CellIndex(cell_id)));
                     cell_id += 1;
                 }
-                Parent::Boundary(_) => {
-                    parent_to_patch.push(Patch::Boundary(BoundaryPatchIndex(boundary_id)));
-                    boundary_id += 1;
+                Parent::Boundary => {
+                    // parent_to_patch.push(Patch::Boundary(BoundaryPatchIndex(boundary_id)));
+                    // boundary_id += 1;
                 }
             }
         }
@@ -235,8 +234,20 @@ impl Computational2DMesh {
                 std::cmp::Ordering::Less => {
                     he_to_face.push(FaceIndex(i));
                     let patches = (
-                        parent_to_patch[mesh.he_to_parent()[he].0].clone(),
-                        parent_to_patch[mesh.he_to_parent()[twin].0].clone(),
+                        if let Parent::Boundary = mesh.parents()[mesh.he_to_parent()[he].0 .0] {
+                            Patch::Boundary(
+                                mesh.he_to_parent()[he].1.expect("Boundary as no index"),
+                            )
+                        } else {
+                            parent_to_patch[mesh.he_to_parent()[he].0 .0].clone()
+                        },
+                        if let Parent::Boundary = mesh.parents()[mesh.he_to_parent()[twin].0 .0] {
+                            Patch::Boundary(
+                                mesh.he_to_parent()[he].1.expect("Boundary as no index"),
+                            )
+                        } else {
+                            parent_to_patch[mesh.he_to_parent()[twin].0 .0].clone()
+                        },
                     );
                     faces.push(Face::new(
                         mesh.vertices_from_he(HalfEdgeIndex(he)),
@@ -245,34 +256,36 @@ impl Computational2DMesh {
                     ));
                     i += 1;
                 }
-                std::cmp::Ordering::Greater => he_to_face.push(he_to_face[he]),
+                std::cmp::Ordering::Greater => he_to_face.push(he_to_face[twin]),
                 std::cmp::Ordering::Equal => panic!(),
             };
         }
 
         let mut cells = vec![];
-        let mut boundaries = vec![];
 
         for (parent, patch) in parent_to_patch.iter().enumerate() {
             match *patch {
                 Patch::Empty => (),
-                Patch::Boundary(id) => {
-                    let boundary = match mesh.parents()[parent].clone() {
-                        Parent::Boundary(boundary) => boundary,
-                        _ => panic!(
-                            "Bad construction of parent_to_patch at index : {:?}",
-                            parent
-                        ),
-                    };
-                    let faces_loc = mesh
-                        .he_from_parent(ParentIndex(parent))
-                        .iter()
-                        .map(|he| he_to_face[he.0])
-                        .collect();
-                    if id.0 != boundaries.len() {
-                        panic!("Wrong construction of boundary");
-                    }
-                    boundaries.push(BoundaryPatch::new(boundary, faces_loc));
+                Patch::Boundary(_) => {
+                    // Patch::Boundary(id) => {
+                    // let boundary = match mesh.parents()[parent].clone() {
+                    //     Parent::Boundary => boundary,
+                    //     _ => panic!(
+                    //         "Bad construction of parent_to_patch at index : {:?}",
+                    //         parent
+                    //     ),
+                    // };
+                    // let faces_loc = mesh
+                    //     .he_from_parent(ParentIndex(parent))
+                    //     .iter()
+                    //     .map(|he| if mesh.he_to_parent()[he].1 == Some(0) {
+                    //         he_to_face[he.0]
+                    //     })
+                    //     .collect();
+                    // if id.0 != boundaries.len() {
+                    //     panic!("Wrong construction of boundary");
+                    // }
+                    // boundaries.push(BoundaryPatch::new(boundary, faces_loc));
                 }
                 Patch::Cell(id) => {
                     match mesh.parents()[parent] {
@@ -298,7 +311,7 @@ impl Computational2DMesh {
         Self {
             cells,
             faces,
-            boundaries,
+            boundaries: mesh.boundaries().clone(),
             vertices,
         }
     }

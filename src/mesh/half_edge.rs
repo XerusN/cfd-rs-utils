@@ -1,9 +1,11 @@
-use crate::{boundary::Boundary, errors::MeshError};
+use crate::errors::MeshError;
 use indices::*;
 use nalgebra::{Point2, Vector2};
 
 use std::fs::File;
 use std::io::{self, Write};
+
+use super::computational_mesh::BoundaryPatch;
 
 pub mod indices;
 
@@ -17,7 +19,7 @@ pub enum Parent {
     #[default]
     None,
     Cell,
-    Boundary(Boundary),
+    Boundary,
 }
 
 /// Array based Half-edge data-structure mesh representation
@@ -30,10 +32,11 @@ pub struct Base2DMesh {
     he_to_twin: Vec<HalfEdgeIndex>,
     he_to_next_he: Vec<HalfEdgeIndex>,
     he_to_prev_he: Vec<HalfEdgeIndex>,
-    he_to_parent: Vec<ParentIndex>,
+    he_to_parent: Vec<(ParentIndex, Option<BoundaryPatchIndex>)>,
 
     vertices: Vec<Point2<f64>>,
     parents: Vec<Parent>,
+    boundaries: Vec<BoundaryPatch>,
 
     parent_to_first_he: Vec<HalfEdgeIndex>,
 }
@@ -90,7 +93,7 @@ impl Base2DMesh {
     }
 
     /// Gets the parent from an HalfEdge.
-    pub fn he_to_parent(&self) -> &Vec<ParentIndex> {
+    pub fn he_to_parent(&self) -> &Vec<(ParentIndex, Option<BoundaryPatchIndex>)> {
         &self.he_to_parent
     }
 
@@ -111,7 +114,10 @@ impl Base2DMesh {
 
     /// Gets the parents adjacent to another.
     /// This may have strange behaviours when used on a boundary.
-    pub fn neighbors_from_parent(&self, parent_id: ParentIndex) -> Vec<ParentIndex> {
+    pub fn neighbors_from_parent(
+        &self,
+        parent_id: ParentIndex,
+    ) -> Vec<(ParentIndex, Option<BoundaryPatchIndex>)> {
         self.he_from_parent(parent_id)
             .into_iter()
             .map(|he_id| self.he_to_parent[self.he_to_twin[he_id]])
@@ -121,6 +127,10 @@ impl Base2DMesh {
     /// Gets the parent properties from its index.
     pub fn parents(&self) -> &Vec<Parent> {
         &self.parents
+    }
+
+    pub fn boundaries(&self) -> &Vec<BoundaryPatch> {
+        &self.boundaries
     }
 
     /// Gets the half-edges connected to a vertex
@@ -236,7 +246,7 @@ impl Base2DMesh {
             }
         }
 
-        for parent in &self.he_to_parent {
+        for (parent, _) in &self.he_to_parent {
             if *parent >= ParentIndex(self.parents.len()) {
                 return Err(MeshError::ParentIndexOutOfBound {
                     got: *parent,
@@ -248,11 +258,11 @@ impl Base2DMesh {
         for i in 0..self.parents.len() {
             let parent = ParentIndex(i);
             for he in self.he_from_parent(parent) {
-                if self.he_to_parent[he] != parent {
+                if self.he_to_parent[he].0 != parent {
                     return Err(MeshError::ParentNotCorrect {
                         parent,
                         he,
-                        he_parent: self.he_to_parent[he],
+                        he_parent: self.he_to_parent[he].0,
                     });
                 }
             }
@@ -291,7 +301,7 @@ impl Base2DMesh {
         writeln!(file, "SCALARS he_to_parent int 1")?;
         writeln!(file, "LOOKUP_TABLE default")?;
         for &parent in &self.he_to_parent {
-            writeln!(file, "{}", parent)?;
+            writeln!(file, "{}", parent.0)?;
         }
 
         Ok(())
@@ -320,8 +330,13 @@ impl Modifiable2DMesh {
     /// The function is marked as unsafe to warn about the very unstable API and the very specific input needed.
     pub unsafe fn new_from_boundary(
         vertices: Vec<Point2<f64>>,
-        edge_to_vertices_and_parent: Vec<(VertexIndex, VertexIndex, ParentIndex)>,
+        edge_to_vertices_and_parent: Vec<(
+            VertexIndex,
+            VertexIndex,
+            (ParentIndex, Option<BoundaryPatchIndex>),
+        )>,
         parents: Vec<Parent>,
+        boundaries: Vec<BoundaryPatch>,
     ) -> Self {
         let mut parents = parents;
 
@@ -333,8 +348,9 @@ impl Modifiable2DMesh {
             Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
         let mut he_to_prev_he =
             Vec::<HalfEdgeIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
-        let mut he_to_parent =
-            Vec::<ParentIndex>::with_capacity(edge_to_vertices_and_parent.len() * 2);
+        let mut he_to_parent = Vec::<(ParentIndex, Option<BoundaryPatchIndex>)>::with_capacity(
+            edge_to_vertices_and_parent.len() * 2,
+        );
 
         let mut parent_to_first_he = Vec::<HalfEdgeIndex>::with_capacity(parents.len() + 1);
 
@@ -354,7 +370,7 @@ impl Modifiable2DMesh {
             he_to_twin.push(new_he_2);
             he_to_twin.push(new_he_1);
 
-            he_to_parent.push(cell);
+            he_to_parent.push((cell, None));
             he_to_parent.push(edge.2);
 
             he_to_next_he.push(HalfEdgeIndex(0));
@@ -387,7 +403,7 @@ impl Modifiable2DMesh {
         for i in 0..parents.len() {
             let current_id = ParentIndex(i);
             for (j, he_parent) in he_to_parent.iter().enumerate() {
-                if current_id == *he_parent {
+                if current_id == he_parent.0 {
                     parent_to_first_he.push(HalfEdgeIndex(j));
                     break;
                 }
@@ -405,6 +421,7 @@ impl Modifiable2DMesh {
 
             parents,
             parent_to_first_he,
+            boundaries,
         })
     }
 
@@ -490,7 +507,9 @@ impl Modifiable2DMesh {
 
     /// Adds an edge between two vertices.
     /// The vertices must share a common parent.
-    /// Returns the new parent
+    /// Returns the new parent.
+    ///
+    /// The parent must be a cell (not a boundary)
     ///
     /// # Safety
     ///
@@ -528,7 +547,7 @@ impl Modifiable2DMesh {
 
         let mut he_from_vertex_with_parent = None;
         for he in &hes_to_vertex {
-            if self.0.he_to_parent[*he] == parent {
+            if self.0.he_to_parent[*he].0 == parent {
                 he_from_vertex_with_parent = Some(*he);
                 break;
             }
@@ -548,18 +567,56 @@ impl Modifiable2DMesh {
 
         let mut he_from_vertex_with_parent_2 = None;
         for he in &hes_to_vertex_2 {
-            if self.0.he_to_parent[*he] == parent {
+            if self.0.he_to_parent[*he].0 == parent {
                 he_from_vertex_with_parent_2 = Some(*he);
                 break;
             }
         }
 
-        if he_from_vertex_with_parent_2.is_none() {
-            return Err(MeshError::ParentDoesNotContainVertex {
-                vertex: vertices.1,
-                parent,
-            });
+        let he_from_vertex_with_parent_2 = match he_from_vertex_with_parent_2 {
+            None => {
+                return Err(MeshError::ParentDoesNotContainVertex {
+                    vertex: vertices.0,
+                    parent,
+                })
+            }
+            Some(value) => value,
         };
+
+        let mut boundary_index = None;
+
+        if let Parent::Boundary = self.0.parents[parent] {
+            if let Some(b_id) = self.0.he_to_parent()[he_from_vertex_with_parent].1 {
+                if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
+                    if b_id == b_id2 {
+                        boundary_index = Some(b_id)
+                    }
+                }
+                if let Some(b_id2) =
+                    self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
+                {
+                    if b_id == b_id2 {
+                        boundary_index = Some(b_id)
+                    }
+                }
+            }
+            if let Some(b_id) =
+                self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent]].1
+            {
+                if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
+                    if b_id == b_id2 {
+                        boundary_index = Some(b_id)
+                    }
+                }
+                if let Some(b_id2) =
+                    self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
+                {
+                    if b_id == b_id2 {
+                        boundary_index = Some(b_id)
+                    }
+                }
+            }
+        }
 
         let new_he = self.0.he_len();
         self.0.he_to_vertex.push(vertices.1);
@@ -569,8 +626,8 @@ impl Modifiable2DMesh {
 
         let new_cell = self.0.parents_len();
         self.0.parents.push(Parent::Cell);
-        self.0.he_to_parent.push(parent);
-        self.0.he_to_parent.push(ParentIndex(new_cell));
+        self.0.he_to_parent.push((parent, boundary_index));
+        self.0.he_to_parent.push((ParentIndex(new_cell), None));
 
         self.0.he_to_next_he.push(he_from_vertex_with_parent);
         self.0.he_to_next_he.push(HalfEdgeIndex(usize::MAX)); // Placeholder to be quite sure to have an error when checking the mesh if the value is not set correctly later in the function
@@ -586,7 +643,7 @@ impl Modifiable2DMesh {
 
         let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.1 {
-            self.0.he_to_parent[current_he] = parent;
+            self.0.he_to_parent[current_he].0 = parent;
             current_he = self.0.he_to_next_he[current_he];
             i += 1;
             if i >= self.0.he_len() {
@@ -604,7 +661,7 @@ impl Modifiable2DMesh {
 
         let mut i = 0;
         while self.0.he_to_vertex[current_he] != vertices.0 {
-            self.0.he_to_parent[current_he] = ParentIndex(new_cell);
+            self.0.he_to_parent[current_he] = (ParentIndex(new_cell), None);
             current_he = self.0.he_to_next_he[current_he];
             i += 1;
             if i >= self.0.he_len() {
@@ -647,7 +704,7 @@ impl Modifiable2DMesh {
         self.0.vertices[new_vertex] = pos;
         let new_parent;
         unsafe {
-            new_parent = self.trimming((vertices[0], vertices[1]), parent)?;
+            new_parent = self.trimming((vertices[0], vertices[1]), parent.0)?;
         }
 
         Ok(new_parent)
@@ -656,6 +713,8 @@ impl Modifiable2DMesh {
     /// Meant to implement mesh adjustement using delaunay condition.
     ///
     /// Parents needs to be adjacent triangles and the triangles must not have aligned edges
+    ///
+    /// Can't swap edges for a boundary (ParentIndex must not point to a boundary)
     pub fn swap_edge(&mut self, parents: (ParentIndex, ParentIndex)) -> Result<(), MeshError> {
         if self.0.vertices_from_parent(parents.0).len() != 3 {
             return Err(MeshError::ParentNotTriangle { parent: parents.0 });
@@ -695,6 +754,19 @@ impl Modifiable2DMesh {
             self.0.he_to_next_he()[self.0.he_to_twin()[common_he]],
             self.0.he_to_next_he()[self.0.he_to_next_he()[self.0.he_to_twin()[common_he]]],
         ];
+
+        if let Parent::Boundary = self.0.parents[parents.0] {
+            return Err(MeshError::BoundaryEdgeSwap {
+                parent_0: parents.0,
+                parent_1: parents.1,
+            });
+        }
+        if let Parent::Boundary = self.0.parents[parents.1] {
+            return Err(MeshError::BoundaryEdgeSwap {
+                parent_0: parents.0,
+                parent_1: parents.1,
+            });
+        }
 
         // Check that no edges are aligned to avoid triangle with no area creation
         let vec_0 = self.0.he_vector(hes_0[1]);
@@ -737,8 +809,8 @@ impl Modifiable2DMesh {
         self.0.he_to_next_he[hes_1[2]] = hes_0[1];
         self.0.he_to_prev_he[hes_0[1]] = hes_1[2];
 
-        self.0.he_to_parent[hes_0[2]] = parents.1;
-        self.0.he_to_parent[hes_1[2]] = parents.0;
+        self.0.he_to_parent[hes_0[2]] = (parents.1, None);
+        self.0.he_to_parent[hes_1[2]] = (parents.0, None);
 
         self.0.parent_to_first_he[parents.0] = hes_0[0];
         self.0.parent_to_first_he[parents.1] = hes_1[0];

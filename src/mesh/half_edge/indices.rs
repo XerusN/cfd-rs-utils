@@ -59,15 +59,15 @@ impl IndexMut<HalfEdgeIndex> for Vec<HalfEdgeIndex> {
     }
 }
 
-impl Index<HalfEdgeIndex> for Vec<ParentIndex> {
-    type Output = ParentIndex;
+impl Index<HalfEdgeIndex> for Vec<(ParentIndex, Option<BoundaryPatchIndex>)> {
+    type Output = (ParentIndex, Option<BoundaryPatchIndex>);
 
     fn index(&self, index: HalfEdgeIndex) -> &Self::Output {
         &self[index.0]
     }
 }
 
-impl IndexMut<HalfEdgeIndex> for Vec<ParentIndex> {
+impl IndexMut<HalfEdgeIndex> for Vec<(ParentIndex, Option<BoundaryPatchIndex>)> {
     fn index_mut(&mut self, index: HalfEdgeIndex) -> &mut Self::Output {
         &mut self[index.0]
     }

@@ -66,4 +66,9 @@ pub enum MeshError {
         parent_0: ParentIndex,
         parent_1: ParentIndex,
     },
+    #[error("Can't swap edge with a boundary ({parent_0:?} and {parent_1:?})")]
+    BoundaryEdgeSwap {
+        parent_0: ParentIndex,
+        parent_1: ParentIndex,
+    },
 }
