@@ -309,7 +309,6 @@ impl Base2DMesh {
     }
 }
 
-
 impl Debug for Base2DMesh {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), Error> {
         writeln!(f, "Base2DMesh:")?;
@@ -319,13 +318,25 @@ impl Debug for Base2DMesh {
             writeln!(f, "{id:9} | {vertex:?}")?;
         }
         writeln!(f, "------------------------------------")?;
-        writeln!(f, "he-id | vertex-id | twin-he | parent-id | next-he | prev-he | boundary-id")?;
+        writeln!(
+            f,
+            "he-id | vertex-id | twin-he | parent-id | next-he | prev-he | boundary-id"
+        )?;
         for (he, twin) in self.he_to_twin().iter().enumerate() {
             let boundary = match self.he_to_parent[he].1 {
                 None => None,
-                Some(value) => Some(value.0)
+                Some(value) => Some(value.0),
             };
-            writeln!(f, "{he:5} | {:9} | {:7} | {:9} | {:7} | {:7} | {:?}", self.he_to_vertex[he].0, twin.0, self.he_to_parent[he].0.0, self.he_to_next_he()[he].0, self.he_to_prev_he()[he].0, boundary)?;
+            writeln!(
+                f,
+                "{he:5} | {:9} | {:7} | {:9} | {:7} | {:7} | {:?}",
+                self.he_to_vertex[he].0,
+                twin.0,
+                self.he_to_parent[he].0 .0,
+                self.he_to_next_he()[he].0,
+                self.he_to_prev_he()[he].0,
+                boundary
+            )?;
         }
         writeln!(f, "------------------------------------")?;
         writeln!(f, "parent-id | parent")?;
@@ -340,7 +351,7 @@ impl Debug for Base2DMesh {
         Ok(())
     }
 }
-    
+
 /// Gives access to modifications from Base2DMesh
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Modifiable2DMesh(pub Base2DMesh);
@@ -537,9 +548,7 @@ impl Modifiable2DMesh {
 
         Ok(())
     }
-    
-    
-    
+
     /// Adds an edge between two vertices.
     /// The vertices must share a common parent.
     /// Returns the new parent.
@@ -556,6 +565,7 @@ impl Modifiable2DMesh {
         &mut self,
         vertices: (VertexIndex, VertexIndex),
         parent: ParentIndex,
+        boundary: Option<BoundaryPatchIndex>,
     ) -> Result<ParentIndex, MeshError> {
         if vertices.0 >= VertexIndex(self.0.vertices_len()) {
             return Err(MeshError::VertexIndexOutOfBound {
@@ -618,39 +628,43 @@ impl Modifiable2DMesh {
             Some(value) => value,
         };
 
-        let mut boundary_index = None;
+        // let mut boundary_index = None;
 
-        if let Parent::Boundary = self.0.parents[parent] {
-            if let Some(b_id) = self.0.he_to_parent()[he_from_vertex_with_parent].1 {
-                if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
-                    if b_id == b_id2 {
-                        boundary_index = Some(b_id)
-                    }
-                }
-                if let Some(b_id2) =
-                    self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
-                {
-                    if b_id == b_id2 {
-                        boundary_index = Some(b_id)
-                    }
-                }
-            } else if let Some(b_id) =
-                self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent]].1
-            {
-                if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
-                    if b_id == b_id2 {
-                        boundary_index = Some(b_id)
-                    }
-                }
-                if let Some(b_id2) =
-                    self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
-                {
-                    if b_id == b_id2 {
-                        boundary_index = Some(b_id)
-                    }
-                }
-            }
-        }
+        // if let Parent::Boundary = self.0.parents[parent] {
+        //     if let Some(b_id) = self.0.he_to_parent()[he_from_vertex_with_parent].1 {
+        //         if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
+        //             if b_id == b_id2 {
+        //                 boundary_index = Some(b_id)
+        //             }
+        //         }
+        //         if let Some(b_id2) =
+        //             self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
+        //         {
+        //             if b_id == b_id2 {
+        //                 boundary_index = Some(b_id)
+        //             }
+        //         }
+        //     }
+        //     if let Some(b_id) =
+        //         self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent]].1
+        //     {
+        //         if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {
+        //             if b_id == b_id2 {
+        //                 boundary_index = Some(b_id)
+        //             }
+        //         }
+        //         if let Some(b_id2) =
+        //             self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent_2]].1
+        //         {
+        //             if b_id == b_id2 {
+        //                 boundary_index = Some(b_id)
+        //             }
+        //         }
+        //     }
+        //     if let None = boundary_index {
+        //         boundary_index = self.0.he_to_parent()[he_from_vertex_with_parent].1;
+        //     }
+        // }
 
         let new_he = self.0.he_len();
         self.0.he_to_vertex.push(vertices.1);
@@ -660,7 +674,7 @@ impl Modifiable2DMesh {
 
         let new_cell = self.0.parents_len();
         self.0.parents.push(Parent::Cell);
-        self.0.he_to_parent.push((parent, boundary_index));
+        self.0.he_to_parent.push((parent, boundary));
         self.0.he_to_parent.push((ParentIndex(new_cell), None));
 
         self.0.he_to_next_he.push(he_from_vertex_with_parent);
@@ -732,13 +746,20 @@ impl Modifiable2DMesh {
         }
 
         let parent = self.0.he_to_parent[self.0.he_to_twin[he]];
+        let parent_2 = self.0.he_to_parent[self.0.he_to_twin[he]];
+
+        let mut boundary = None;
+        if let Parent::Boundary = self.0.parents[parent_2.0] {
+            boundary = parent_2.1;
+        }
+
         let vertices = self.0.vertices_from_he(he);
         let new_vertex = self.0.vertices_len();
         self.split_edge(he, 0.5)?;
         self.0.vertices[new_vertex] = pos;
         let new_parent;
         unsafe {
-            new_parent = self.trimming((vertices[0], vertices[1]), parent.0)?;
+            new_parent = self.trimming((vertices[0], vertices[1]), parent.0, boundary)?;
         }
 
         Ok(new_parent)

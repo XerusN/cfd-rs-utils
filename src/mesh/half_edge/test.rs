@@ -71,7 +71,7 @@ fn add_edge_between_vertices_test_1() {
     let mut mesh = simple_mesh();
 
     unsafe {
-        mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
+        mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1), None)
             .unwrap();
     }
 
@@ -100,7 +100,7 @@ fn combined_test() {
     mesh.0.export_vtk("./output/test_0.vtk").unwrap();
 
     unsafe {
-        mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1))
+        mesh.trimming((VertexIndex(1), VertexIndex(3)), ParentIndex(1), None)
             .unwrap();
     }
 
@@ -116,7 +116,7 @@ fn combined_test() {
         if let Err(MeshError::ParentDoesNotContainVertex {
             vertex: _,
             parent: _,
-        }) = mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1))
+        }) = mesh.trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(1), None)
         {
             ();
         } else {
@@ -124,7 +124,7 @@ fn combined_test() {
         }
 
         new_parent = mesh
-            .trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2))
+            .trimming((VertexIndex(4), VertexIndex(0)), ParentIndex(2), None)
             .unwrap();
     }
 
