@@ -2,6 +2,7 @@ use crate::errors::MeshError;
 use indices::*;
 use nalgebra::{Point2, Vector2};
 
+use std::fmt::{self, Debug, Error};
 use std::fs::File;
 use std::io::{self, Write};
 
@@ -25,7 +26,7 @@ pub enum Parent {
 /// Array based Half-edge data-structure mesh representation
 /// Supports meshes of up to a billion element.
 /// Since the crate is built for cfd on a classic computer (not HPC) it is easily enough.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct Base2DMesh {
     //```he``` is for Half-edge
     he_to_vertex: Vec<VertexIndex>,
@@ -308,6 +309,38 @@ impl Base2DMesh {
     }
 }
 
+
+impl Debug for Base2DMesh {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), Error> {
+        writeln!(f, "Base2DMesh:")?;
+        writeln!(f, "------------------------------------")?;
+        writeln!(f, "vertex-id | coords [x, y]")?;
+        for (id, vertex) in self.vertices.iter().enumerate() {
+            writeln!(f, "{id:9} | {vertex:?}")?;
+        }
+        writeln!(f, "------------------------------------")?;
+        writeln!(f, "he-id | vertex-id | twin-he | parent-id | next-he | prev-he | boundary-id")?;
+        for (he, twin) in self.he_to_twin().iter().enumerate() {
+            let boundary = match self.he_to_parent[he].1 {
+                None => None,
+                Some(value) => Some(value.0)
+            };
+            writeln!(f, "{he:5} | {:9} | {:7} | {:9} | {:7} | {:7} | {:?}", self.he_to_vertex[he].0, twin.0, self.he_to_parent[he].0.0, self.he_to_next_he()[he].0, self.he_to_prev_he()[he].0, boundary)?;
+        }
+        writeln!(f, "------------------------------------")?;
+        writeln!(f, "parent-id | parent")?;
+        for (id, parent) in self.parents.iter().enumerate() {
+            writeln!(f, "{id:9} | {parent:?}")?;
+        }
+        writeln!(f, "------------------------------------")?;
+        writeln!(f, "boundary-id | boundaries")?;
+        for (id, boundary) in self.boundaries().iter().enumerate() {
+            writeln!(f, "{id:11} | {boundary:?}")?;
+        }
+        Ok(())
+    }
+}
+    
 /// Gives access to modifications from Base2DMesh
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Modifiable2DMesh(pub Base2DMesh);
@@ -504,7 +537,9 @@ impl Modifiable2DMesh {
 
         Ok(())
     }
-
+    
+    
+    
     /// Adds an edge between two vertices.
     /// The vertices must share a common parent.
     /// Returns the new parent.
@@ -599,8 +634,7 @@ impl Modifiable2DMesh {
                         boundary_index = Some(b_id)
                     }
                 }
-            }
-            if let Some(b_id) =
+            } else if let Some(b_id) =
                 self.0.he_to_parent()[self.0.he_to_next_he()[he_from_vertex_with_parent]].1
             {
                 if let Some(b_id2) = self.0.he_to_parent()[he_from_vertex_with_parent_2].1 {

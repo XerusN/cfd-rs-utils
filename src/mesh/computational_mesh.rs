@@ -1,3 +1,5 @@
+use std::usize;
+
 use nalgebra::{Point2, Vector2};
 
 use crate::geometry::*;
@@ -219,7 +221,8 @@ impl Computational2DMesh {
                     cell_id += 1;
                 }
                 Parent::Boundary => {
-                    // parent_to_patch.push(Patch::Boundary(BoundaryPatchIndex(boundary_id)));
+                    // value stored here must not be used
+                    parent_to_patch.push(Patch::Boundary(BoundaryPatchIndex(usize::MAX)));
                     // boundary_id += 1;
                 }
             }
@@ -236,14 +239,14 @@ impl Computational2DMesh {
                     let patches = (
                         if let Parent::Boundary = mesh.parents()[mesh.he_to_parent()[he].0 .0] {
                             Patch::Boundary(
-                                mesh.he_to_parent()[he].1.expect("Boundary as no index"),
+                                mesh.he_to_parent()[he].1.expect("Boundary has no index"),
                             )
                         } else {
                             parent_to_patch[mesh.he_to_parent()[he].0 .0].clone()
                         },
                         if let Parent::Boundary = mesh.parents()[mesh.he_to_parent()[twin].0 .0] {
                             Patch::Boundary(
-                                mesh.he_to_parent()[he].1.expect("Boundary as no index"),
+                                mesh.he_to_parent()[twin].1.expect("Boundary has no index"),
                             )
                         } else {
                             parent_to_patch[mesh.he_to_parent()[twin].0 .0].clone()
