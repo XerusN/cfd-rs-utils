@@ -191,6 +191,14 @@ impl Computational2DMesh {
     pub fn num_faces(&self) -> usize {
         self.faces.len()
     }
+    
+    pub fn num_vertices(&self) -> usize {
+        self.vertices.len()
+    }
+    
+    pub fn vertices(&self) -> &[Point2<f64>] {
+        &self.vertices
+    }
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells
