@@ -9,15 +9,13 @@ use super::{
     Base2DMesh, Parent,
 };
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Patch {
-    #[default]
-    Empty,
     Cell(CellIndex),
     Boundary(BoundaryPatchIndex),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Face {
     vertices: [VertexIndex; 2],
     area: f64,
@@ -60,19 +58,32 @@ impl Face {
         &self.patches
     }
     
-    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> Option<(CellIndex, CellIndex, f64)> {
-        let r_f = vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5);
+    pub fn middle_point(&self, vertices_glob: &[Point2<f64>]) -> Point2<f64> {
+        vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5)
+    }
+    
+    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> (&Patch, &Patch, f64) {
+        let r_f = self.middle_point(vertices_glob);
         let r_a = match self.patches.0 {
-            Patch::Cell(id) => (id, cells_glob[id.0].centroid),
-            _ => return None
+            Patch::Cell(id) => cells_glob[id.0].centroid,
+            _ => {
+                let r_b = match self.patches.1 {
+                    Patch::Cell(id) => cells_glob[id.0].centroid,
+                    _ => panic!("Face with two boundaries as neighbors")
+                };
+                return (&self.patches.0, &self.patches.1, (r_b - r_f).magnitude())
+            },
         };
         let r_b = match self.patches.1 {
-            Patch::Cell(id) => (id, cells_glob[id.0].centroid),
-            _ => return None
+            Patch::Cell(id) => cells_glob[id.0].centroid,
+            _ => {
+                return (&self.patches.0, &self.patches.1, (r_a - r_f).magnitude())
+            },
         };
         
-        Some((r_a.0, r_b.0, (r_b.1 - r_f).magnitude()/(r_b.1 - r_a.1).magnitude()))
+        (&self.patches.0, &self.patches.1, (r_b - r_f).magnitude()/(r_b - r_a).magnitude())
     }
+    
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -240,9 +251,17 @@ impl Computational2DMesh {
         }).collect()
     }
     
-    /// returns None if one of the neighbor is not a cell
-    pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> Option<(CellIndex, CellIndex, f64)> {
+    pub fn surface_vectors_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
+        (self.cells[cell].faces_id(), self.normals_from_cell(cell))
+    }
+    
+    /// Returns the distance to the boundary if there is one
+    pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> (&Patch, &Patch, f64) {
         self.faces[face_id.0].geometric_weighting_factor(&self.vertices, &self.cells)
+    }
+    
+    pub fn middle_point_from_face(&self, face: FaceIndex) -> Point2<f64> {
+        self.faces[face.0].middle_point(&self.vertices)
     }
     
     pub fn new_from_he(mesh: Base2DMesh) -> Self {
@@ -309,7 +328,6 @@ impl Computational2DMesh {
 
         for (parent, patch) in parent_to_patch.iter().enumerate() {
             match *patch {
-                Patch::Empty => (),
                 Patch::Boundary(_) => {
                     // Patch::Boundary(id) => {
                     // let boundary = match mesh.parents()[parent].clone() {
