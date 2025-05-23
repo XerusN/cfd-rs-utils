@@ -62,6 +62,21 @@ impl Face {
         vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5)
     }
     
+    /// Points outward
+    pub fn normal_from_cell(&self, cell: CellIndex) -> Option<Vector2<f64>> {
+        if let Patch::Cell(id) = self.patches.0 {
+            if id == cell {
+                return Some(self.normal().clone())
+            }
+        }
+        if let Patch::Cell(id) = self.patches.1 {
+            if id == cell {
+                return Some((- self.normal()).clone())
+            }
+        }
+        None
+    }
+    
     pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> (&Patch, &Patch, f64) {
         let r_f = self.middle_point(vertices_glob);
         let r_a = match self.patches.0 {
@@ -158,6 +173,31 @@ impl Cell {
             })
             .collect()
     }
+    
+    pub fn neighboring_patches<'a>(&self, cells_glob: &[Cell], faces_glob: &'a [Face]) -> Vec<&'a Patch> {
+        let faces = self.faces(faces_glob);
+
+        faces
+            .iter()
+            .map(|&face| match face.patches().0 {
+                Patch::Cell(id) if &cells_glob[id.0] == self => &face.patches().1,
+                _ => &face.patches.0,
+            })
+            .collect()
+    }
+    
+    pub fn neighboring_patches_and_faces<'a>(&self, cells_glob: &[Cell], faces_glob: &'a [Face]) -> Vec<(&'a Patch, &'a Face, FaceIndex)> {
+        let faces = self.faces(faces_glob);
+        let faces_id = self.faces_id();
+        
+        faces
+            .iter()
+            .enumerate().map(|(id, &face)| (match face.patches().0 {
+                Patch::Cell(id) if &cells_glob[id.0] == self => &face.patches().1,
+                _ => &face.patches.0,
+            }, face, faces_id[id]))
+            .collect()
+    }
 
     pub fn vertices_id(&self) -> &[VertexIndex] {
         &self.vertices
@@ -236,6 +276,14 @@ impl Computational2DMesh {
 
     pub fn neighboring_cells_id(&self, cell: CellIndex) -> Vec<CellIndex> {
         self.cells[cell].neighboring_cells_id(&self.cells, &self.faces)
+    }
+    
+    pub fn neighboring_patches(&self, cell: CellIndex) -> Vec<&Patch> {
+        self.cells[cell].neighboring_patches(&self.cells, &self.faces)
+    }
+    
+    pub fn neighboring_patches_and_faces(&self, cell: CellIndex) -> Vec<(&Patch, &Face, FaceIndex)> {
+        self.cells[cell].neighboring_patches_and_faces(&self.cells, &self.faces)
     }
     
     pub fn normals_from_cell(&self, cell: CellIndex) -> Vec<Vector2<f64>> {
