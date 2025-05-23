@@ -51,13 +51,27 @@ impl Face {
     pub fn normal(&self) -> &Vector2<f64> {
         &self.normal
     }
-
+    
     pub fn area(&self) -> f64 {
         self.area
     }
 
     pub fn patches(&self) -> &(Patch, Patch) {
         &self.patches
+    }
+    
+    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> Option<f64> {
+        let r_f = vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5);
+        let r_a = match self.patches.0 {
+            Patch::Cell(id) => cells_glob[id.0].centroid,
+            _ => return None
+        };
+        let r_b = match self.patches.1 {
+            Patch::Cell(id) => cells_glob[id.0].centroid,
+            _ => return None
+        };
+        
+        Some((r_b - r_f).magnitude()/(r_b - r_a).magnitude())
     }
 }
 
@@ -144,6 +158,7 @@ impl Cell {
             .map(|f_id| &vertices_glob[f_id.0])
             .collect::<Vec<&Point2<f64>>>()
     }
+    
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -211,7 +226,25 @@ impl Computational2DMesh {
     pub fn neighboring_cells_id(&self, cell: CellIndex) -> Vec<CellIndex> {
         self.cells[cell].neighboring_cells_id(&self.cells, &self.faces)
     }
-
+    
+    pub fn normals_from_cell(&self, cell: CellIndex) -> Vec<Vector2<f64>> {
+        self.cells[cell].faces(&self.faces).iter().map(|&face| match face.patches.0 {
+            Patch::Cell(id) => {
+                if id == cell {
+                    face.normal().clone()
+                } else {
+                    - face.normal().clone()
+                }
+            },
+            _ => - face.normal().clone(),
+        }).collect()
+    }
+    
+    /// returns None if one of the neighbor is not a cell
+    pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> Option<f64> {
+        self.faces[face_id.0].geometric_weighting_factor(&self.vertices, &self.cells)
+    }
+    
     pub fn new_from_he(mesh: Base2DMesh) -> Self {
         let mut vertices = Vec::with_capacity(mesh.vertices_len());
         for i in 0..mesh.vertices_len() {
