@@ -60,18 +60,18 @@ impl Face {
         &self.patches
     }
     
-    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> Option<f64> {
+    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> Option<(CellIndex, CellIndex, f64)> {
         let r_f = vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5);
         let r_a = match self.patches.0 {
-            Patch::Cell(id) => cells_glob[id.0].centroid,
+            Patch::Cell(id) => (id, cells_glob[id.0].centroid),
             _ => return None
         };
         let r_b = match self.patches.1 {
-            Patch::Cell(id) => cells_glob[id.0].centroid,
+            Patch::Cell(id) => (id, cells_glob[id.0].centroid),
             _ => return None
         };
         
-        Some((r_b - r_f).magnitude()/(r_b - r_a).magnitude())
+        Some((r_a.0, r_b.0, (r_b.1 - r_f).magnitude()/(r_b.1 - r_a.1).magnitude()))
     }
 }
 
@@ -241,7 +241,7 @@ impl Computational2DMesh {
     }
     
     /// returns None if one of the neighbor is not a cell
-    pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> Option<f64> {
+    pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> Option<(CellIndex, CellIndex, f64)> {
         self.faces[face_id.0].geometric_weighting_factor(&self.vertices, &self.cells)
     }
     
