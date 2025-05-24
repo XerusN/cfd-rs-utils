@@ -1,6 +1,8 @@
-use std::usize;
+use std::{fs::File, io::{self, Write}, path::PathBuf, usize};
 
+use bincode::encode_into_std_write;
 use nalgebra::{Point2, Vector2};
+use serde::{Serialize, Deserialize};
 
 use crate::geometry::*;
 
@@ -9,13 +11,13 @@ use super::{
     Base2DMesh, Parent,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Patch {
     Cell(CellIndex),
     Boundary(BoundaryPatchIndex),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Face {
     vertices: [VertexIndex; 2],
     area: f64,
@@ -101,7 +103,7 @@ impl Face {
     
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Cell {
     volume: f64,
     centroid: Point2<f64>,
@@ -212,7 +214,7 @@ impl Cell {
     
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct BoundaryPatch {
     name: String,
     // Difficult to implement, to be considered
@@ -241,7 +243,7 @@ impl BoundaryPatch {
 }
 
 /// Contains all the topological and geometric data needed by a mesh
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Computational2DMesh {
     cells: Vec<Cell>,
     boundaries: Vec<BoundaryPatch>,
@@ -424,5 +426,97 @@ impl Computational2DMesh {
             boundaries: mesh.boundaries().clone(),
             vertices,
         }
+    }
+    
+    /// https://docs.vtk.org/en/latest/design_documents/VTKFileFormats.html#unstructuredgrid
+    pub fn export(&self, path: String) -> io::Result<()> {
+        let path = PathBuf::from(format!(
+            "{}/mesh.vtu",
+            &path,
+        ));
+
+        let mut file = File::create(&path)?;
+
+        writeln!(
+            file,
+            "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
+        )?;
+        writeln!(file, "  <UnstructuredGrid>")?;
+        writeln!(
+            file,
+            "    <Piece NumberOfPoints=\"{}\" NumberOfCells=\"{}\">",
+            self.num_vertices(),
+            self.num_cells()
+        )?;
+        writeln!(file, "      <Points>")?;
+        writeln!(
+            file,
+            "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">"
+        )?;
+        write!(file, "          ")?;
+        for vertex in self.vertices() {
+            write!(file, "{} {} 0 ", vertex.x, vertex.y)?;
+        }
+        writeln!(file)?;
+        writeln!(file, "        </DataArray>")?;
+        writeln!(file, "      </Points>")?;
+
+        writeln!(file, "      <Cells>")?;
+        writeln!(
+            file,
+            "        <DataArray type=\"UInt64\" Name=\"connectivity\" format=\"ascii\">"
+        )?;
+        write!(file, "          ")?;
+        for cell in self.cells() {
+            for vertex_id in cell.vertices_id() {
+                write!(file, "{} ", vertex_id.0)?;
+            }
+        }
+        writeln!(file)?;
+        writeln!(file, "        </DataArray>")?;
+        writeln!(
+            file,
+            "        <DataArray type=\"UInt64\" Name=\"offsets\" format=\"ascii\">"
+        )?;
+        write!(file, "          ")?;
+        let mut offset = 0;
+        for cell in self.cells() {
+            offset += cell.vertices_id().len();
+            write!(file, "{} ", offset)?;
+        }
+        writeln!(file)?;
+        writeln!(file, "        </DataArray>")?;
+        writeln!(
+            file,
+            "        <DataArray type=\"UInt64\" Name=\"types\" format=\"ascii\">"
+        )?;
+        write!(file, "          ")?;
+        for cell in self.cells() {
+            if cell.vertices_id().len() == 3 {
+                write!(file, "5 ")?;
+            } else {
+                unimplemented!();
+            }
+        }
+        writeln!(file)?;
+        writeln!(file, "        </DataArray>")?;
+        writeln!(file, "      </Cells>")?;
+
+        writeln!(file, "    </Piece>")?;
+        writeln!(file, "  </UnstructuredGrid>")?;
+        writeln!(file, "</VTKFile>")?;
+        
+        Ok(())
+    }
+    
+    pub fn serialize_file(&self, path: &str) -> std::io::Result<()> {
+        let mut file = File::create(path)?;
+        bincode::serde::encode_into_std_write(self, &mut file, bincode::config::standard()).unwrap();
+        Ok(())
+    }
+    
+    pub fn deserialize_file(path: &str) -> std::io::Result<Computational2DMesh> {
+        let mut file = File::open(path)?;
+        Ok(bincode::serde::decode_from_std_read(&mut file, bincode::config::standard()).unwrap())
     }
 }
