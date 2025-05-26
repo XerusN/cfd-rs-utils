@@ -301,7 +301,11 @@ impl Computational2DMesh {
         }).collect()
     }
     
-    pub fn surface_vectors_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
+    pub fn normals_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
+        (self.cells[cell].faces_id(), self.normals_from_cell(cell))
+    }
+    
+    pub fn normal_vectors_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
         (self.cells[cell].faces_id(), self.normals_from_cell(cell))
     }
     
