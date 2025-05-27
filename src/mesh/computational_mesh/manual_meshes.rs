@@ -66,7 +66,7 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
             ));
         }
         let last_face = faces.len() - 1;
-        cells.push(Cell::new(vec![FaceIndex(last_face)], &vertices, &faces));
+        cells.push(Cell::new(vec![FaceIndex(last_face), FaceIndex(last_face-1), FaceIndex(last_face-2), FaceIndex(last_face-3)], &vertices, &faces));
     }
 
     Computational2DMesh {
