@@ -1,8 +1,12 @@
-use std::{fs::File, io::{self, Write}, path::PathBuf, usize};
+use std::{
+    fs::File,
+    io::{self, Write},
+    path::PathBuf,
+    usize,
+};
 
-use bincode::encode_into_std_write;
-use nalgebra::{Point2, Vector2};
-use serde::{Serialize, Deserialize};
+use nalgebra::{point, Point2, Vector2};
+use serde::{Deserialize, Serialize};
 
 use crate::geometry::*;
 
@@ -10,6 +14,8 @@ use super::{
     indices::{BoundaryPatchIndex, CellIndex, FaceIndex, HalfEdgeIndex, ParentIndex, VertexIndex},
     Base2DMesh, Parent,
 };
+
+pub mod manual_meshes;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Patch {
@@ -51,7 +57,7 @@ impl Face {
     pub fn normal(&self) -> &Vector2<f64> {
         &self.normal
     }
-    
+
     pub fn area(&self) -> f64 {
         self.area
     }
@@ -59,48 +65,53 @@ impl Face {
     pub fn patches(&self) -> &(Patch, Patch) {
         &self.patches
     }
-    
+
     pub fn middle_point(&self, vertices_glob: &[Point2<f64>]) -> Point2<f64> {
         vertices_glob[self.vertices[0].0].lerp(&vertices_glob[self.vertices[1].0], 0.5)
     }
-    
+
     /// Points outward
     pub fn normal_from_cell(&self, cell: CellIndex) -> Option<Vector2<f64>> {
         if let Patch::Cell(id) = self.patches.0 {
             if id == cell {
-                return Some(self.normal().clone())
+                return Some(self.normal().clone());
             }
         }
         if let Patch::Cell(id) = self.patches.1 {
             if id == cell {
-                return Some((- self.normal()).clone())
+                return Some((-self.normal()).clone());
             }
         }
         None
     }
-    
-    pub fn geometric_weighting_factor(&self, vertices_glob: &[Point2<f64>], cells_glob: &[Cell]) -> (&Patch, &Patch, f64) {
+
+    pub fn geometric_weighting_factor(
+        &self,
+        vertices_glob: &[Point2<f64>],
+        cells_glob: &[Cell],
+    ) -> (&Patch, &Patch, f64) {
         let r_f = self.middle_point(vertices_glob);
         let r_a = match self.patches.0 {
             Patch::Cell(id) => cells_glob[id.0].centroid,
             _ => {
                 let r_b = match self.patches.1 {
                     Patch::Cell(id) => cells_glob[id.0].centroid,
-                    _ => panic!("Face with two boundaries as neighbors")
+                    _ => panic!("Face with two boundaries as neighbors"),
                 };
-                return (&self.patches.0, &self.patches.1, (r_b - r_f).magnitude())
-            },
+                return (&self.patches.0, &self.patches.1, (r_b - r_f).magnitude());
+            }
         };
         let r_b = match self.patches.1 {
             Patch::Cell(id) => cells_glob[id.0].centroid,
-            _ => {
-                return (&self.patches.0, &self.patches.1, (r_a - r_f).magnitude())
-            },
+            _ => return (&self.patches.0, &self.patches.1, (r_a - r_f).magnitude()),
         };
-        
-        (&self.patches.0, &self.patches.1, (r_b - r_f).magnitude()/(r_b - r_a).magnitude())
+
+        (
+            &self.patches.0,
+            &self.patches.1,
+            (r_b - r_f).magnitude() / (r_b - r_a).magnitude(),
+        )
     }
-    
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -112,6 +123,7 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// faces needs to be given in a coherent order
     pub fn new(faces: Vec<FaceIndex>, vertices_glob: &[Point2<f64>], faces_glob: &[Face]) -> Self {
         let mut vertices = vec![];
         for face in faces
@@ -125,14 +137,12 @@ impl Cell {
                 }
             }
         }
-        assert_eq!(vertices.len(), 3);
-        let points = [
-            vertices_glob[vertices[0].0],
-            vertices_glob[vertices[1].0],
-            vertices_glob[vertices[2].0],
-        ];
-        let volume = triangle_area(&points);
-        let centroid = triangle_centroid(&points);
+        let mut points = vec!();
+        for vertex in &vertices {
+            points.push(vertices_glob[vertex.0]);
+        }
+        let (centroid, volume) = centroid_and_area(&points);
+        
         Cell {
             volume,
             centroid,
@@ -175,8 +185,12 @@ impl Cell {
             })
             .collect()
     }
-    
-    pub fn neighboring_patches<'a>(&self, cells_glob: &[Cell], faces_glob: &'a [Face]) -> Vec<&'a Patch> {
+
+    pub fn neighboring_patches<'a>(
+        &self,
+        cells_glob: &[Cell],
+        faces_glob: &'a [Face],
+    ) -> Vec<&'a Patch> {
         let faces = self.faces(faces_glob);
 
         faces
@@ -187,17 +201,28 @@ impl Cell {
             })
             .collect()
     }
-    
-    pub fn neighboring_patches_and_faces<'a>(&self, cells_glob: &[Cell], faces_glob: &'a [Face]) -> Vec<(&'a Patch, &'a Face, FaceIndex)> {
+
+    pub fn neighboring_patches_and_faces<'a>(
+        &self,
+        cells_glob: &[Cell],
+        faces_glob: &'a [Face],
+    ) -> Vec<(&'a Patch, &'a Face, FaceIndex)> {
         let faces = self.faces(faces_glob);
         let faces_id = self.faces_id();
-        
+
         faces
             .iter()
-            .enumerate().map(|(id, &face)| (match face.patches().0 {
-                Patch::Cell(id) if &cells_glob[id.0] == self => &face.patches().1,
-                _ => &face.patches.0,
-            }, face, faces_id[id]))
+            .enumerate()
+            .map(|(id, &face)| {
+                (
+                    match face.patches().0 {
+                        Patch::Cell(id) if &cells_glob[id.0] == self => &face.patches().1,
+                        _ => &face.patches.0,
+                    },
+                    face,
+                    faces_id[id],
+                )
+            })
             .collect()
     }
 
@@ -211,7 +236,6 @@ impl Cell {
             .map(|f_id| &vertices_glob[f_id.0])
             .collect::<Vec<&Point2<f64>>>()
     }
-    
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -259,11 +283,11 @@ impl Computational2DMesh {
     pub fn num_faces(&self) -> usize {
         self.faces.len()
     }
-    
+
     pub fn num_vertices(&self) -> usize {
         self.vertices.len()
     }
-    
+
     pub fn vertices(&self) -> &[Point2<f64>] {
         &self.vertices
     }
@@ -279,45 +303,58 @@ impl Computational2DMesh {
     pub fn neighboring_cells_id(&self, cell: CellIndex) -> Vec<CellIndex> {
         self.cells[cell].neighboring_cells_id(&self.cells, &self.faces)
     }
-    
+
     pub fn neighboring_patches(&self, cell: CellIndex) -> Vec<&Patch> {
         self.cells[cell].neighboring_patches(&self.cells, &self.faces)
     }
-    
-    pub fn neighboring_patches_and_faces(&self, cell: CellIndex) -> Vec<(&Patch, &Face, FaceIndex)> {
+
+    pub fn neighboring_patches_and_faces(
+        &self,
+        cell: CellIndex,
+    ) -> Vec<(&Patch, &Face, FaceIndex)> {
         self.cells[cell].neighboring_patches_and_faces(&self.cells, &self.faces)
     }
-    
+
     pub fn normals_from_cell(&self, cell: CellIndex) -> Vec<Vector2<f64>> {
-        self.cells[cell].faces(&self.faces).iter().map(|&face| match face.patches.0 {
-            Patch::Cell(id) => {
-                if id == cell {
-                    face.normal().clone()
-                } else {
-                    - face.normal().clone()
+        self.cells[cell]
+            .faces(&self.faces)
+            .iter()
+            .map(|&face| match face.patches.0 {
+                Patch::Cell(id) => {
+                    if id == cell {
+                        face.normal().clone()
+                    } else {
+                        -face.normal().clone()
+                    }
                 }
-            },
-            _ => - face.normal().clone(),
-        }).collect()
+                _ => -face.normal().clone(),
+            })
+            .collect()
     }
-    
-    pub fn normals_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
+
+    pub fn normals_from_cell_with_faces_id(
+        &self,
+        cell: CellIndex,
+    ) -> (&[FaceIndex], Vec<Vector2<f64>>) {
         (self.cells[cell].faces_id(), self.normals_from_cell(cell))
     }
-    
-    pub fn normal_vectors_from_cell_with_faces_id(&self, cell: CellIndex) -> (&[FaceIndex], Vec<Vector2<f64>>) {
+
+    pub fn normal_vectors_from_cell_with_faces_id(
+        &self,
+        cell: CellIndex,
+    ) -> (&[FaceIndex], Vec<Vector2<f64>>) {
         (self.cells[cell].faces_id(), self.normals_from_cell(cell))
     }
-    
+
     /// Returns the distance to the boundary if there is one
     pub fn geometric_weighting_factor(&self, face_id: FaceIndex) -> (&Patch, &Patch, f64) {
         self.faces[face_id.0].geometric_weighting_factor(&self.vertices, &self.cells)
     }
-    
+
     pub fn middle_point_from_face(&self, face: FaceIndex) -> Point2<f64> {
         self.faces[face.0].middle_point(&self.vertices)
     }
-    
+
     pub fn new_from_he(mesh: Base2DMesh) -> Self {
         let mut vertices = Vec::with_capacity(mesh.vertices_len());
         for i in 0..mesh.vertices_len() {
@@ -431,13 +468,24 @@ impl Computational2DMesh {
             vertices,
         }
     }
-    
+
+    pub unsafe fn manual_new(
+        cells: Vec<Cell>,
+        faces: Vec<Face>,
+        boundaries: Vec<BoundaryPatch>,
+        vertices: Vec<Point2<f64>>,
+    ) -> Self {
+        Self {
+            cells,
+            faces,
+            boundaries,
+            vertices,
+        }
+    }
+
     /// https://docs.vtk.org/en/latest/design_documents/VTKFileFormats.html#unstructuredgrid
     pub fn export(&self, path: String) -> io::Result<()> {
-        let path = PathBuf::from(format!(
-            "{}/mesh.vtu",
-            &path,
-        ));
+        let path = PathBuf::from(format!("{}/mesh.vtu", &path,));
 
         let mut file = File::create(&path)?;
 
@@ -509,16 +557,17 @@ impl Computational2DMesh {
         writeln!(file, "    </Piece>")?;
         writeln!(file, "  </UnstructuredGrid>")?;
         writeln!(file, "</VTKFile>")?;
-        
+
         Ok(())
     }
-    
+
     pub fn serialize_file(&self, path: &str) -> std::io::Result<()> {
         let mut file = File::create(path)?;
-        bincode::serde::encode_into_std_write(self, &mut file, bincode::config::standard()).unwrap();
+        bincode::serde::encode_into_std_write(self, &mut file, bincode::config::standard())
+            .unwrap();
         Ok(())
     }
-    
+
     pub fn deserialize_file(path: &str) -> std::io::Result<Computational2DMesh> {
         let mut file = File::open(path)?;
         Ok(bincode::serde::decode_from_std_read(&mut file, bincode::config::standard()).unwrap())
