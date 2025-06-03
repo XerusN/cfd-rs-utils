@@ -141,6 +141,7 @@ impl Cell {
         for vertex in &vertices {
             points.push(vertices_glob[vertex.0]);
         }
+        
         let (centroid, volume) = centroid_and_area(&points);
         
         Cell {

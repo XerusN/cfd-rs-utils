@@ -6,6 +6,7 @@ use super::{BoundaryPatch, Cell, Computational2DMesh, Face, Patch};
 
 pub fn straight_line(num_cells: usize) -> Computational2DMesh {
     let l = 1.;
+    let t = l/num_cells as f64;
 
     let mut vertices = vec![];
     let mut cells = vec![];
@@ -17,7 +18,7 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
     ];
 
     vertices.push(Point2::new(0., 0.));
-    vertices.push(Point2::new(0., 0.1));
+    vertices.push(Point2::new(0., t));
     faces.push(Face::new(
         [VertexIndex(0), VertexIndex(1)],
         (
@@ -29,7 +30,7 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
 
     for i in 0..num_cells {
         vertices.push(Point2::new((i as f64 + 1.) * l / num_cells as f64, 0.));
-        vertices.push(Point2::new((i as f64 + 1.) * l / num_cells as f64, 0.1));
+        vertices.push(Point2::new((i as f64 + 1.) * l / num_cells as f64, t));
         faces.push(Face::new(
             [VertexIndex(i*2), VertexIndex(i*2+2)],
             (
