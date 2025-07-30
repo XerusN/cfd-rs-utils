@@ -6,7 +6,7 @@ use crate::mesh::computational_mesh::{BoundaryPatch, Cell};
 use nalgebra::Point2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct ParentIndex(pub usize);
 
 impl Index<ParentIndex> for Vec<HalfEdgeIndex> {
@@ -43,7 +43,7 @@ impl fmt::Display for ParentIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct HalfEdgeIndex(pub usize);
 
 impl Index<HalfEdgeIndex> for Vec<HalfEdgeIndex> {
@@ -94,7 +94,7 @@ impl fmt::Display for HalfEdgeIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct VertexIndex(pub usize);
 
 impl Index<VertexIndex> for Vec<Point2<f64>> {
@@ -117,7 +117,7 @@ impl fmt::Display for VertexIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct FaceIndex(pub usize);
 
 impl Index<FaceIndex> for Vec<Point2<f64>> {
@@ -140,7 +140,7 @@ impl fmt::Display for FaceIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct CellIndex(pub usize);
 
 impl Index<CellIndex> for Vec<Cell> {
@@ -163,7 +163,7 @@ impl fmt::Display for CellIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize, Ord, Eq)]
 pub struct BoundaryPatchIndex(pub usize);
 
 impl Index<BoundaryPatchIndex> for Vec<BoundaryPatch> {

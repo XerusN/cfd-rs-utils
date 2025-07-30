@@ -123,24 +123,53 @@ pub struct Cell {
 }
 
 impl Cell {
-    /// faces needs to be given in a coherent order
-    pub fn new(faces: Vec<FaceIndex>, vertices_glob: &[Point2<f64>], faces_glob: &[Face]) -> Self {
+    /// faces needs to be given in trigonometric order
+    pub fn new(faces: Vec<FaceIndex>, vertices_glob: &[Point2<f64>], faces_glob: &[Face], cell_id: CellIndex) -> Self {
         let mut vertices = vec![];
-        for face in faces
+        for (i, face) in faces
             .iter()
             .map(|f_id| &faces_glob[f_id.0])
-            .collect::<Vec<&Face>>()
+            .collect::<Vec<&Face>>().iter().enumerate()
         {
-            for i in 0..2 {
-                if !vertices.contains(&face.vertices[i]) {
-                    vertices.push(face.vertices[i]);
+            'push_vert: {
+                if i == 0 {
+                    match face.patches().0 {
+                        Patch::Cell(id) if id == cell_id => {
+                            vertices.push(face.vertices()[0]);
+                            vertices.push(face.vertices()[1]);
+                            break 'push_vert;
+                        },
+                        _ => (),
+                    }
+                    match face.patches().1 {
+                        Patch::Cell(id) if id == cell_id => {
+                            vertices.push(face.vertices()[1]);
+                            vertices.push(face.vertices()[0]);
+                            break 'push_vert;
+                        },
+                        _ => (),
+                    }
+                } else if i == faces.len() - 1 {
+                    assert!(vertices.contains(&face.vertices[0]), "Last face contains vertices not defined in other faces");
+                    assert!(vertices.contains(&face.vertices[1]), "Last face contains vertices not defined in other faces");
+                } else {
+                    for (j, vert) in face.vertices().iter().enumerate() {
+                        if *vert == vertices[vertices.len()-1] {
+                            vertices.push(face.vertices[(j+1)%2]);
+                            break;
+                        }
+                    }
                 }
             }
+            assert!(vertices.len() > 0, "The first face does not contain the cell as one of the patches (Cell {cell_id})");
         }
+        assert_eq!(vertices.len(), faces.len(), "Faces not defined in trigonometric order");
+        
         let mut points = vec!();
         for vertex in &vertices {
             points.push(vertices_glob[vertex.0]);
         }
+        println!("{:?} {:?} {:?}", vertices, faces, points);
         
         let (centroid, volume) = centroid_and_area(&points);
         
@@ -457,7 +486,7 @@ impl Computational2DMesh {
                     if id.0 != cells.len() {
                         panic!("Wrong construction of boundary");
                     }
-                    cells.push(Cell::new(faces_loc, &vertices, &faces));
+                    cells.push(Cell::new(faces_loc, &vertices, &faces, CellIndex(cells.len())));
                 }
             }
         }
