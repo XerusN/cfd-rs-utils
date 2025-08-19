@@ -169,7 +169,6 @@ impl Cell {
         for vertex in &vertices {
             points.push(vertices_glob[vertex.0]);
         }
-        println!("{:?} {:?} {:?}", vertices, faces, points);
         
         let (centroid, volume) = centroid_and_area(&points);
         
