@@ -80,7 +80,6 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
 
 pub fn quad_square(size: usize) -> Computational2DMesh {
     
-    let size = 100;
     let l = 1.;
     let delta = l/(size - 1) as f64;
 
