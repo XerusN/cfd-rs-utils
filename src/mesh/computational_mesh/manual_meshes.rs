@@ -4,9 +4,8 @@ use crate::mesh::indices::{BoundaryPatchIndex, CellIndex, FaceIndex, VertexIndex
 
 use super::{BoundaryPatch, Cell, Computational2DMesh, Face, Patch};
 
-pub fn straight_line(num_cells: usize) -> Computational2DMesh {
-    let l = 1.;
-    let t = l/num_cells as f64;
+pub fn straight_line(l: f64, n: usize) -> Computational2DMesh {
+    let t = l/n as f64;
 
     let mut vertices = vec![];
     let mut cells = vec![];
@@ -28,9 +27,9 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
         &vertices,
     ));
 
-    for i in 0..num_cells {
-        vertices.push(Point2::new((i as f64 + 1.) * l / num_cells as f64, 0.));
-        vertices.push(Point2::new((i as f64 + 1.) * l / num_cells as f64, t));
+    for i in 0..n {
+        vertices.push(Point2::new((i as f64 + 1.) * l / n as f64, 0.));
+        vertices.push(Point2::new((i as f64 + 1.) * l / n as f64, t));
         faces.push(Face::new(
             [VertexIndex(i*2), VertexIndex(i*2+2)],
             (
@@ -47,7 +46,7 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
             ),
             &vertices,
         ));
-        if i < num_cells-1 {
+        if i < n-1 {
             faces.push(Face::new(
                 [VertexIndex(i*2+2), VertexIndex(i*2+3)],
                 (
@@ -78,10 +77,9 @@ pub fn straight_line(num_cells: usize) -> Computational2DMesh {
     }
 }
 
-pub fn quad_square(size: usize) -> Computational2DMesh {
+pub fn quad_square(l: &Vector2<f64>, n: &Vector2<usize>) -> Computational2DMesh {
     
-    let l = 1.;
-    let delta = l/(size - 1) as f64;
+    let delta = Vector2::new(l.x/(n.x-1) as f64, l.y/(n.y-1) as f64);
 
     let mut vertices = vec![];
     let mut cells = vec![];
@@ -95,8 +93,8 @@ pub fn quad_square(size: usize) -> Computational2DMesh {
     
     // First line
     vertices.push(Point2::new(0., 0.));
-    for i in 1..size {
-        vertices.push(Point2::new(i as f64*delta, 0.));
+    for i in 1..n.x {
+        vertices.push(Point2::new(i as f64*delta.x, 0.));
         faces.push(Face::new(
             [VertexIndex(i-1), VertexIndex(i)],
             (
@@ -108,55 +106,55 @@ pub fn quad_square(size: usize) -> Computational2DMesh {
     }
     let mut first_row_face = faces.len();
     let mut old_second_row_face = 0;
-    for j in 1..size {
-        vertices.push(Point2::new(0., delta*j as f64));
+    for j in 1..n.y {
+        vertices.push(Point2::new(0., delta.y*j as f64));
         
         faces.push(Face::new(
-            [VertexIndex((j-1)*size), VertexIndex(j*size)],
+            [VertexIndex((j-1)*n.x), VertexIndex(j*n.x)],
             (
                 Patch::Boundary(BoundaryPatchIndex(0)),
-                Patch::Cell(CellIndex((j-1)*(size-1))),
+                Patch::Cell(CellIndex((j-1)*(n.x-1))),
             ),
             &vertices,
         ));
         
-        for i in 1..size {
-            vertices.push(Point2::new(i as f64*delta, delta*j as f64));
-            if j < size-1 {
+        for i in 1..n.x {
+            vertices.push(Point2::new(i as f64*delta.x, delta.y*j as f64));
+            if j < n.y-1 {
                 faces.push(Face::new(
-                    [VertexIndex(j*size + i - 1), VertexIndex(j*size + i)],
+                    [VertexIndex(j*n.x + i - 1), VertexIndex(j*n.x + i)],
                     (
-                        Patch::Cell(CellIndex(j*(size-1) + i-1)),
-                        Patch::Cell(CellIndex((j-1)*(size-1) + i-1)),
+                        Patch::Cell(CellIndex(j*(n.x-1) + i-1)),
+                        Patch::Cell(CellIndex((j-1)*(n.x-1) + i-1)),
                     ),
                     &vertices,
                 ));
             } else {
                 faces.push(Face::new(
-                    [VertexIndex(j*size + i - 1), VertexIndex(j*size + i)],
+                    [VertexIndex(j*n.x + i - 1), VertexIndex(j*n.x + i)],
                     (
                         Patch::Boundary(BoundaryPatchIndex(3)),
-                        Patch::Cell(CellIndex((j-1)*(size-1) + i-1)),
+                        Patch::Cell(CellIndex((j-1)*(n.x-1) + i-1)),
                     ),
                     &vertices,
                 ));
             }
             
-            if i < size-1 {
+            if i < n.x-1 {
                 faces.push(Face::new(
-                    [VertexIndex(j*size + i), VertexIndex((j-1)*size + i)],
+                    [VertexIndex(j*n.x + i), VertexIndex((j-1)*n.x + i)],
                     (
-                        Patch::Cell(CellIndex((j-1)*(size-1) + i)),
-                        Patch::Cell(CellIndex((j-1)*(size-1) + i-1)),
+                        Patch::Cell(CellIndex((j-1)*(n.x-1) + i)),
+                        Patch::Cell(CellIndex((j-1)*(n.x-1) + i-1)),
                     ),
                     &vertices,
                 ));
             } else {
                 faces.push(Face::new(
-                    [VertexIndex(j*size + i), VertexIndex((j-1)*size + i)],
+                    [VertexIndex(j*n.x + i), VertexIndex((j-1)*n.x + i)],
                     (
                         Patch::Boundary(BoundaryPatchIndex(2)),
-                        Patch::Cell(CellIndex((j-1)*(size-1) + i-1)),
+                        Patch::Cell(CellIndex((j-1)*(n.x-1) + i-1)),
                     ),
                     &vertices,
                 ));
